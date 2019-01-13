@@ -66,12 +66,7 @@ parameter delay =10;
 		  new_rx_data = 1'b0;
 		  rx_data = "h";
 		  #20;
-		  new_rx_data = 1'b1;
-		  #delay;
-		  new_rx_data = 1'b0;
-		  rx_data = "9";
-		  #delay;
-		  new_rx_data = 1'b1;
+/*		  new_rx_data = 1'b1;
 		  #delay;
 		  new_rx_data = 1'b0;
 		  rx_data = "1";
@@ -89,7 +84,40 @@ parameter delay =10;
 		  new_rx_data = 1'b1;
 		  #delay;
 		  new_rx_data = 1'b0;
-		  rx_data = "0";
+		  rx_data = "4";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;*/
+		  
+		  		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = "9";
+		  rx_data = 8'hB1;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'h08;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'h0;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		   rx_data = 8'h0;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		    new_rx_data = 1'b0;
+		  #delay;
+
+		  
+		  /*rx_data = "0";
 		  #delay;
 		  new_rx_data = 1'b1;
 		  #delay;
@@ -112,7 +140,7 @@ parameter delay =10;
 		  rx_data = "g";
 		  #delay;
 		  new_rx_data = 1'b1;
-		  #delay;
+		  #delay;*/
 		  
 		  #8000
 		   new_tx_data_reg = 1'b0; 
@@ -144,7 +172,7 @@ parameter delay =10;
 		  new_rx_data = 1'b1;
 		  #delay;
 		  new_rx_data = 1'b0;
-		  rx_data = "5";
+/*		  rx_data = "5";
 		  #delay;
 		  new_rx_data = 1'b1;
 		  #delay;
@@ -167,7 +195,7 @@ parameter delay =10;
 		  rx_data = "g";
 		  #delay;
 		  new_rx_data = 1'b1;
-		  #delay;
+		  #delay;*/
 		  
         /*A = {-32'd1,32'd2,32'd3,32'd4};
         B = {32'd1,32'd2 ,32'd3,32'd4};

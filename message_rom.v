@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 module message_rom (
     input clk,
-    input [3:0] addr,
+    input [7:0] addr,
     output [7:0] data,
 	 input [31:0] valuetoprint,
 	 output conversiondone,
@@ -95,11 +95,11 @@ module message_rom (
 		  end
       end
 		STATE2: begin
-				if (addr > 4'd10) begin
+				if (addr < 4'd1) begin // might need to be 0
 					data_d = "\n";
 					end
 			 else  begin
-					if (coverted[addr*4-1 -: 4] == 8'd0) begin
+					  if (coverted[addr*4-1 -: 4] == 8'd0) begin
 							data_d = "0";
 						end
 						else if (coverted[addr*4-1 -: 4] == 8'd1) begin
@@ -128,7 +128,8 @@ module message_rom (
 						end
 						else if (coverted[addr*4-1 -: 4] == 8'd9) begin
 							data_d = "9";
-						end	
+						end							
+						//data_d= coverted[addr*4-1 -: 4];
 					if (!done && startconv) begin
 						state_d = IDLE;
 					end	
