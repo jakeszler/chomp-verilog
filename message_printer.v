@@ -18,13 +18,14 @@ module message_printer (
 	 CALC = 4,
 	 WAIT = 5;
  
-  localparam MESSAGE_LEN = 11;
+  localparam MESSAGE_LEN = 10;
  
   reg [STATE_SIZE-1:0] state_d, state_q;
  
-  reg [3:0] addr_d, addr_q;
-   reg [7:0] count_d,  count_q = 8'b0;
-	
+
+  reg signed[7:0] addr_d, addr_q;
+   reg [7:0] count_d,  count_q;
+
 	  
   reg  [7:0] result = 8'b0;
   wire [7:0] value;
@@ -58,14 +59,16 @@ module message_printer (
 	 //number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};//32'b0;
     case (state_q)
       IDLE: begin
-        addr_d = 4'd0;
+        addr_d = 4'd10;
 		  count_d = 4'd0;
 		  startconv = 1'b0;
         if ( new_rx_data && rx_data == "h")
           state_d = STATE2;
       end
 				STATE2: begin
-				if ( new_rx_data && count_q < NUMBEROFNUMBER) begin
+
+			if ( new_rx_data && count_q < NUMBEROFNUMBER) begin
+
 					numbertemp =rx_data;
 					count_d = count_q +  8'd1;
 					state_d = STATE2;
@@ -75,7 +78,7 @@ module message_printer (
 					state_d = STATE3;
 				end
 
-			/*if (rx_data == "0"&& new_rx_data && count_q < NUMBEROFNUMBER) begin
+/*			if (rx_data == "0"&& new_rx_data && count_q < NUMBEROFNUMBER) begin
 				numbertemp = 4'd0;
 				count_d = count_q+ 8'd1;
 				state_d = STATE2;
@@ -125,14 +128,13 @@ module message_printer (
 				count_d = count_q + 8'd1;
 				state_d = STATE2;
 			end
-			else if (rx_data == "g"&& new_rx_data && NUMBEROFNUMBER <= count_q) begin
+			else if (NUMBEROFNUMBER <= count_q) begin
 				count_d = count_q;
 				state_d = STATE3;
-			end
-			else if (rx_data == "g" && new_rx_data && NUMBEROFNUMBER > count_q) begin
-				count_d = count_q;
-				state_d = STATE2;
+
 			end*/
+
+
 			//else begin
 			//	state_d = STATE2;
 			//end
@@ -149,16 +151,19 @@ module message_printer (
 			//end
 			//else if (count == NUMBEROFNUMBER)
 			//begin
-			
-			//number1_d = numbers[4] *1000 + numbers[5] *100 +numbers[6] *10 +numbers[7];
+
+			//number1_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
 			//number2_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
 			number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
+			number2_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
+
 			state_d = CALC;
 			//state_d = CALC;
 			//end
 		end
 		CALC: begin
-			multresult_d = number1_q;// * number1_q;//number2_q;
+
+			multresult_d = number1_q * number1_q;
 			//result =  number1* number2;
 			state_d = WAIT;
 		end
@@ -171,8 +176,8 @@ module message_printer (
 		   startconv = 1'b0;
         if (!tx_busy) begin
           new_tx_data = 1'b1;
-          addr_d = addr_q + 1'b1;
-          if (addr_q == MESSAGE_LEN-1)
+          addr_d = addr_q - 1'b1;
+          if (addr_q == 1)
             state_d = IDLE;
         end
       end
