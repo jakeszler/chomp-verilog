@@ -8,7 +8,7 @@ module message_printer (
     input new_rx_data,
 	 output [7:0] ledout
   );
-   localparam NUMBEROFNUMBER = 8;
+   localparam NUMBEROFNUMBER = 4;
 
   localparam STATE_SIZE = 4;
   localparam IDLE = 0,
@@ -23,20 +23,20 @@ module message_printer (
   reg [STATE_SIZE-1:0] state_d, state_q;
  
   reg [3:0] addr_d, addr_q;
-   reg [7:0] count_d,  count_q;
+   reg [7:0] count_d,  count_q = 8'b0;
 	
 	  
-  reg  [7:0] result;
+  reg  [7:0] result = 8'b0;
   wire [7:0] value;
-  reg signed [31:0] number1_d,number1_q, number2_d,number2_q;
-  reg signed [31:0] multresult_d, multresult_q;
+  reg signed [31:0] number1_d,number1_q, number2_d,number2_q = 32'b0;
+  reg signed [31:0] multresult_d, multresult_q = 32'b0;
   reg signed[7:0] numbertemp;
   reg signed[7:0] numbers [NUMBEROFNUMBER-1:0];
   
-  assign ledout = count_q;
-  assign value = result;
+ // assign ledout = count_q;
+  assign ledout = result;
   wire conversiondone;
-  reg startconv = 1'b0;
+  reg startconv,startconv_q = 1'b0;
   
   message_rom message_rom (
   .clk(clk),
@@ -51,8 +51,11 @@ module message_printer (
     state_d = state_q; // default values
     addr_d = addr_q;   // needed to prevent latches
     new_tx_data = 1'b0;
+	 //startconv = 1'b0;
     count_d = count_q;
-	 
+	 //numbertemp = 8'b0;
+	 //multresult_d = 32'b0;
+	 //number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};//32'b0;
     case (state_q)
       IDLE: begin
         addr_d = 4'd0;
@@ -62,7 +65,17 @@ module message_printer (
           state_d = STATE2;
       end
 				STATE2: begin
-			if (rx_data == "0"&& new_rx_data && count_q < NUMBEROFNUMBER) begin
+				if ( new_rx_data && count_q < NUMBEROFNUMBER) begin
+					numbertemp =rx_data;
+					count_d = count_q +  8'd1;
+					state_d = STATE2;
+				end
+				else if (NUMBEROFNUMBER <= count_q) begin
+					count_d = count_q;
+					state_d = STATE3;
+				end
+
+			/*if (rx_data == "0"&& new_rx_data && count_q < NUMBEROFNUMBER) begin
 				numbertemp = 4'd0;
 				count_d = count_q+ 8'd1;
 				state_d = STATE2;
@@ -119,10 +132,10 @@ module message_printer (
 			else if (rx_data == "g" && new_rx_data && NUMBEROFNUMBER > count_q) begin
 				count_d = count_q;
 				state_d = STATE2;
-			end
-			else begin
-				state_d = STATE2;
-			end
+			end*/
+			//else begin
+			//	state_d = STATE2;
+			//end
 /*			else if(new_rx_data && count_q < NUMBEROFNUMBER)begin
 				count_d = 8'd0;
 				state_d = STATE2;
@@ -136,15 +149,16 @@ module message_printer (
 			//end
 			//else if (count == NUMBEROFNUMBER)
 			//begin
-			number1_d = numbers[4] *1000 + numbers[5] *100 +numbers[6] *10 +numbers[7];
-			number2_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
 			
+			//number1_d = numbers[4] *1000 + numbers[5] *100 +numbers[6] *10 +numbers[7];
+			//number2_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
+			number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
 			state_d = CALC;
 			//state_d = CALC;
 			//end
 		end
 		CALC: begin
-			multresult_d = number1_q * number2_q;
+			multresult_d = number1_q;// * number1_q;//number2_q;
 			//result =  number1* number2;
 			state_d = WAIT;
 		end
@@ -172,7 +186,7 @@ module message_printer (
     end else begin
       state_q <= state_d;
     end
-    result <= numbers[1];
+    result <= numbers[0];
 	 number1_q <= number1_d; 
 	 number2_q <= number2_d;
     multresult_q <= multresult_d; 

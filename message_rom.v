@@ -54,7 +54,7 @@ module message_rom (
   assign rom_data[12] = "!";
   assign rom_data[13] = "\n";
  
-  reg [7:0] data_d, data_q;
+  reg [7:0] data_d, data_q =  7'b0;
   //reg [DECIMAL_DIGITS*4-1:0] digit_coverted;
   //reg doneconversion;
   assign data = data_q;
@@ -71,7 +71,8 @@ module message_rom (
   );
   always @(*) begin
 		data_d = data_q;
-		state_d = state_q; 
+		state_d = state_q;
+		start = 1'b0;
 /*    if (addr > 4'd2)
       data_d = " ";
     else if(addr == 4'd0)
