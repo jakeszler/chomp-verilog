@@ -16,9 +16,10 @@ module message_printer (
 	 STATE2 = 2,
 	 STATE3 =3,
 	 CALC = 4,
-	 WAIT = 5;
+	 WAIT = 5,
+	 CHECKNEG = 6;
  
-  localparam MESSAGE_LEN = 10;
+  //localparam MESSAGE_LEN = 10;
  
   reg [STATE_SIZE-1:0] state_d, state_q;
  
@@ -38,13 +39,15 @@ module message_printer (
   assign ledout = result;
   wire conversiondone;
   reg startconv,startconv_q = 1'b0;
-  
+  reg isneg_q,isneg_d = 1'b0;
+
   message_rom message_rom (
   .clk(clk),
   .addr(addr_q),
   .data(tx_data),
   .valuetoprint(multresult_q),
   .conversiondone(conversiondone),
+  .isneg(isneg_q),
   .startconv(startconv)
   );
  
@@ -52,21 +55,27 @@ module message_printer (
     state_d = state_q; // default values
     addr_d = addr_q;   // needed to prevent latches
     new_tx_data = 1'b0;
-	 //startconv = 1'b0;
+	 startconv = startconv_q;
     count_d = count_q;
+	 multresult_d = multresult_q;
+	 numbertemp = numbers[count_q];
+	 number1_d = number1_q;
+	 number2_d = number1_q;
+	 isneg_d = isneg_q;
 	 //numbertemp = 8'b0;
 	 //multresult_d = 32'b0;
 	 //number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};//32'b0;
     case (state_q)
       IDLE: begin
-        addr_d = 4'd10;
+        addr_d = 4'd12;
 		  count_d = 4'd0;
 		  startconv = 1'b0;
+		  multresult_d =32'b0;
+		  isneg_d = 1'b0;
         if ( new_rx_data && rx_data == "h")
           state_d = STATE2;
       end
 				STATE2: begin
-
 			if ( new_rx_data && count_q < NUMBEROFNUMBER) begin
 
 					numbertemp =rx_data;
@@ -144,6 +153,7 @@ module message_printer (
 			end*/
 		end
 		STATE3: begin
+		
 			//if (new_rx_data && count< NUMBEROFNUMBER)
 			//begin
 			//count = count+ 1;
@@ -163,7 +173,19 @@ module message_printer (
 		end
 		CALC: begin
 
-			multresult_d = number1_q * number1_q;
+			//multresult_d = number1_q * number1_q;
+			 multresult_d = number1_q * 2;
+          //result =  number1* number2;
+         state_d = CHECKNEG;
+			end
+			CHECKNEG: begin
+		  if(multresult_q < 0)begin
+					 multresult_d = -multresult_q;
+					 isneg_d = 1'b1;
+		  end
+		  else begin
+					 isneg_d = 1'b0;
+		  end
 			//result =  number1* number2;
 			state_d = WAIT;
 		end
@@ -195,10 +217,11 @@ module message_printer (
 	 number1_q <= number1_d; 
 	 number2_q <= number2_d;
     multresult_q <= multresult_d; 
-	 
+	 startconv_q<= startconv;
     addr_q <= addr_d;
 	 numbers[count_q] <= numbertemp;
 	 count_q <= count_d;
+	 isneg_q <= isneg_d;
   end
  
 endmodule

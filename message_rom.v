@@ -24,14 +24,15 @@ module message_rom (
     output [7:0] data,
 	 input [31:0] valuetoprint,
 	 output conversiondone,
-	 input startconv	
+	 input startconv,
+	 input isneg
   );
   //parameter DECIMAL_DIGITS = 4;
    localparam STATE_SIZE = 4;
   localparam IDLE = 0,
     PRINT_MESSAGE = 1,
 	 STATE2 = 2,
-	 STATE3 =3,
+	 NEGCHECK =3,
 	 CALC = 4;
    localparam size = 32,
 	numdigits =10;
@@ -57,6 +58,7 @@ module message_rom (
   reg [7:0] data_d, data_q =  7'b0;
   //reg [DECIMAL_DIGITS*4-1:0] digit_coverted;
   //reg doneconversion;
+  
   assign data = data_q;
   wire [39:0] coverted;
   reg start = 1'b0;
@@ -89,16 +91,33 @@ module message_rom (
 		  else
 				start = 4'd0;
 		  //count_d = 4'd0;
-		  data_d = "-";
+		  data_d = ":";
         if (done)begin
           state_d = STATE2;
 			 start = 4'd0;
 		  end
       end
+/*		 NEGCHECK: begin
+		if(isneg) begin
+				 data_d = "1";
+			  end
+			  else begin
+				 data_d = "9";
+			  end
+			  state_d = STATE2;
+	end*/
 		STATE2: begin
 				if (addr < 4'd1) begin // might need to be 0
 					data_d = "\n";
 					end
+				else if (addr > 4'd10)begin
+						if(isneg) begin
+						 data_d = "-";
+					  end
+					  else begin
+						 data_d = "+";
+					  end
+				end
 			 else  begin
 					  if (coverted[addr*4-1 -: 4] == 8'd0) begin
 							data_d = "0";
@@ -131,10 +150,10 @@ module message_rom (
 							data_d = "9";
 						end							
 						//data_d= coverted[addr*4-1 -: 4];
-					if (!done && startconv) begin
+				end
+				if (!done && startconv) begin
 						state_d = IDLE;
 					end	
-				end
 			end
 		  default: state_d = IDLE;
     endcase

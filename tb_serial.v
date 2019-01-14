@@ -65,7 +65,64 @@ parameter delay =10;
 		  rst = 1'b0;
 		  new_rx_data = 1'b0;
 		  rx_data = "h";
-		  #20;
+		  #delay;
+		  
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = "9";
+		  rx_data = 8'hB1;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'h08;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'h0;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		   rx_data = 8'h0;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		    new_rx_data = 1'b0;
+		  #8000;
+		  
+		   new_rx_data = 1'b0;
+		  rx_data = "h";
+		  #delay;
+		  
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = "9";
+		  rx_data = 8'h01;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'hFF;//"9";
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		  rx_data = 8'hFF;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		  new_rx_data = 1'b0;
+		   rx_data = 8'hFF;
+		  #delay;
+		  new_rx_data = 1'b1;
+		  #delay;
+		    new_rx_data = 1'b0;
+		  #delay;
+		  
 /*		  new_rx_data = 1'b1;
 		  #delay;
 		  new_rx_data = 1'b0;
@@ -90,31 +147,7 @@ parameter delay =10;
 		  #delay;
 		  new_rx_data = 1'b0;*/
 		  
-		  		  new_rx_data = 1'b1;
-		  #delay;
-		  new_rx_data = 1'b0;
-		  rx_data = "9";
-		  rx_data = 8'hB1;//"9";
-		  #delay;
-		  new_rx_data = 1'b1;
-		  #delay;
-		  new_rx_data = 1'b0;
-		  rx_data = 8'h08;//"9";
-		  #delay;
-		  new_rx_data = 1'b1;
-		  #delay;
-		  new_rx_data = 1'b0;
-		  rx_data = 8'h0;
-		  #delay;
-		  new_rx_data = 1'b1;
-		  #delay;
-		  new_rx_data = 1'b0;
-		   rx_data = 8'h0;
-		  #delay;
-		  new_rx_data = 1'b1;
-		  #delay;
-		    new_rx_data = 1'b0;
-		  #delay;
+		  		  
 
 		  
 		  /*rx_data = "0";
