@@ -38,11 +38,14 @@ module message_printer (
   reg signed[7:0] numbertemp;
   reg signed[7:0] numbers [NUMBEROFNUMBER-1:0];
   
-  reg signed[31:0] AA [0:99][0:99];
+  //reg signed[31:0] AA [0:99][0:99];
   reg signed[31:0] BB [0:99];
   reg signed[31:0] xi [0:99];
   reg signed[31:0] nablaobs [0:99];
   
+  reg signed[31:0] obs[0:3];
+
+
   /* wire [320000-1:0]AA_flattened;
 	integer k,l;
 	for (k=0;k<32;k=k+1) begin
@@ -72,7 +75,7 @@ module message_printer (
   initial begin
 	  for (i=0;i<100;i=i+1) begin
 		 for (j=0;j<100;j=j+1)begin
-		 AA[i][j] = 32'd0;
+		 //AA[i][j] = 32'd0;
 		 end
 		 BB[i] = 32'd0;
 		 nablaobs[i] = 32'd0;
@@ -89,7 +92,7 @@ module message_printer (
 		BB[97]= 32'd74000;
 		BB[98]= 32'd74000;
 		BB[99]= -32'd74000;
-		for (ii=0; ii<100; ii=ii+1)
+/*		for (ii=0; ii<100; ii=ii+1)
         begin
 		     
 		     AA[ii][ii] = 32'd95;
@@ -101,12 +104,25 @@ module message_printer (
           //r_Data[ii] = ii*ii;
           //$display("Time %2d: r_Data at Index %1d is %2d", $time, ii, r_Data[ii]);
           //#10;
-			 
         end
-		  AA[0][5] = -32'd47;
+		  AA[0][5] = -32'd47;*/
+		  for (k=0;k<100;k=k+1) begin
+			    if(k>94) begin
+				 nablaobs[k] = xi[k]*32'd95 +  xi[k-5]*-32'd47; end
+			    else if(k<5)begin
+			    nablaobs[k] = (xi[k]*32'd95) + (xi[k+5]*-32'd47); end
+				 else begin
+				 nablaobs[k] = (xi[k-5]*-32'd47)+ xi[k]*32'd95 + xi[k+5]*-32'd47; end
+		  end
 		  
+		  obs[0] = -32'd1320;
+		  obs[1] =  32'd3480;
+		  obs[2] = -32'd1520;
+		  obs[3] =  32'd4240;
+		  //[-1320,  3480]  1 columb = 1 obs
+        //[-1519,  4240]
 
-		  
+
   end
   
   always @(*) begin
@@ -120,7 +136,8 @@ module message_printer (
 	 number1_d = number1_q;
 	 number2_d = number1_q;
 	 isneg_d = isneg_q;
-	 
+	 valueToPrint_d = valueToPrint_q;
+	 amounttoprint_d = amounttoprint_q;
 	 
 	 //numbertemp = 8'b0;
 	 //multresult_d = 32'b0;
@@ -131,9 +148,25 @@ module message_printer (
 		state_d = IDLE;
 		end
       IDLE: begin
-		  for (k=0;k<100;k=k+1) begin
-				nablaobs[k] = ((AA[k][0]*xi[k])+(AA[k][1]*xi[k])+(AA[k][2]*xi[k])+(AA[k][3]*xi[k])+(AA[k][4]*xi[k])+(AA[k][5]*xi[k])+(AA[k][6]*xi[k])+(AA[k][7]*xi[k])+(AA[k][8]*xi[k])+(AA[k][9]*xi[k])+(AA[k][10]*xi[k])+(AA[k][11]*xi[k])+(AA[k][12]*xi[k])+(AA[k][13]*xi[k])+(AA[k][14]*xi[k])+(AA[k][15]*xi[k])+(AA[k][16]*xi[k])+(AA[k][17]*xi[k])+(AA[k][18]*xi[k])+(AA[k][19]*xi[k])+(AA[k][20]*xi[k])+(AA[k][21]*xi[k])+(AA[k][22]*xi[k])+(AA[k][23]*xi[k])+(AA[k][24]*xi[k])+(AA[k][25]*xi[k])+(AA[k][26]*xi[k])+(AA[k][27]*xi[k])+(AA[k][28]*xi[k])+(AA[k][29]*xi[k])+(AA[k][30]*xi[k])+(AA[k][31]*xi[k])+(AA[k][32]*xi[k])+(AA[k][33]*xi[k])+(AA[k][34]*xi[k])+(AA[k][35]*xi[k])+(AA[k][36]*xi[k])+(AA[k][37]*xi[k])+(AA[k][38]*xi[k])+(AA[k][39]*xi[k])+(AA[k][40]*xi[k])+(AA[k][41]*xi[k])+(AA[k][42]*xi[k])+(AA[k][43]*xi[k])+(AA[k][44]*xi[k])+(AA[k][45]*xi[k])+(AA[k][46]*xi[k])+(AA[k][47]*xi[k])+(AA[k][48]*xi[k])+(AA[k][49]*xi[k])+(AA[k][50]*xi[k])+(AA[k][51]*xi[k])+(AA[k][52]*xi[k])+(AA[k][53]*xi[k])+(AA[k][54]*xi[k])+(AA[k][55]*xi[k])+(AA[k][56]*xi[k])+(AA[k][57]*xi[k])+(AA[k][58]*xi[k])+(AA[k][59]*xi[k])+(AA[k][60]*xi[k])+(AA[k][61]*xi[k])+(AA[k][62]*xi[k])+(AA[k][63]*xi[k])+(AA[k][64]*xi[k])+(AA[k][65]*xi[k])+(AA[k][66]*xi[k])+(AA[k][67]*xi[k])+(AA[k][68]*xi[k])+(AA[k][69]*xi[k])+(AA[k][70]*xi[k])+(AA[k][71]*xi[k])+(AA[k][72]*xi[k])+(AA[k][73]*xi[k])+(AA[k][74]*xi[k])+(AA[k][75]*xi[k])+(AA[k][76]*xi[k])+(AA[k][77]*xi[k])+(AA[k][78]*xi[k])+(AA[k][79]*xi[k])+(AA[k][80]*xi[k])+(AA[k][81]*xi[k])+(AA[k][82]*xi[k])+(AA[k][83]*xi[k])+(AA[k][84]*xi[k])+(AA[k][85]*xi[k])+(AA[k][86]*xi[k])+(AA[k][87]*xi[k])+(AA[k][88]*xi[k])+(AA[k][89]*xi[k])+(AA[k][90]*xi[k])+(AA[k][91]*xi[k])+(AA[k][92]*xi[k])+(AA[k][93]*xi[k])+(AA[k][94]*xi[k])+(AA[k][95]*xi[k])+(AA[k][96]*xi[k])+(AA[k][97]*xi[k])+(AA[k][98]*xi[k])+(AA[k][99]*xi[k]))+BB[k];	  
+			  for (k=0;k<100;k=k+1) begin
+			    if(k==95 || k==96) begin
+				 nablaobs[k] = (xi[k]*32'd95 +  xi[k-5]*-32'd47)- 32'd333000 ; end
+				 else if(k==97 || k ==98) begin
+				 nablaobs[k] = (xi[k]*32'd95 +  xi[k-5]*-32'd47)+ 32'd74000 ; end
+				 else if(k==99) begin
+				 nablaobs[k] = (xi[k]*32'd95 +  xi[k-5]*-32'd47)- 32'd74000 ; end
+			    else if(k==0 || k ==1)begin
+					nablaobs[k] = (xi[k]*32'd95 + xi[k+5]*-32'd47)+32'd238000; end
+				 else if(k==2 || k ==3)begin
+					nablaobs[k] = (xi[k]*32'd95 + xi[k+5]*-32'd47)-32'd74000; end
+				 else if (k==4) begin
+					nablaobs[k] = (xi[k]*32'd95 + xi[k+5]*-32'd47)+32'd74000; end				 
+				 else begin
+				 nablaobs[k] = (xi[k-5]*-32'd47)+ xi[k]*32'd95 + xi[k+5]*-32'd47; end
 		  end
+		  
+		  
+		  
 		  valueToPrint_d =nablaobs[99];
         addr_d = 4'd12;
 		  count_d = 4'd0;
@@ -254,7 +287,7 @@ module message_printer (
 					 isneg_d = 1'b1;
 		  end
 		  else begin
-					 valueToPrint_d= nablaobs[amounttoprint_q];
+					 valueToPrint_d = nablaobs[amounttoprint_q];
 					 isneg_d = 1'b0;
 		  end
 			//result =  number1* number2;
