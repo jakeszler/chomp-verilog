@@ -86,7 +86,7 @@ module message_rom (
 		
 		case (state_q)
       IDLE: begin
-		  if(startconv)
+/*		  if(startconv)
 				start = 4'd1;
 		  else
 				start = 4'd0;
@@ -95,7 +95,8 @@ module message_rom (
         if (done)begin
           state_d = STATE2;
 			 start = 4'd0;
-		  end
+		  end*/
+		  state_d = STATE2;
       end
 /*		 NEGCHECK: begin
 		if(isneg) begin
@@ -107,7 +108,14 @@ module message_rom (
 			  state_d = STATE2;
 	end*/
 		STATE2: begin
-				if (addr < 4'd1) begin // might need to be 0
+				if(valuetoprint == 32'd2147483646)
+				begin
+				data_d = ":";
+				end
+				else begin
+				data_d =  valuetoprint[addr*8-1 -: 8];//valuetoprint[addr*4-1 -: 8];
+				end
+				/*if (addr < 4'd1) begin // might need to be 0
 					data_d = "\n";
 					end
 				else if (addr > 4'd10)begin
@@ -154,6 +162,7 @@ module message_rom (
 				if (!done && startconv) begin
 						state_d = IDLE;
 					end	
+			end*/
 			end
 		  default: state_d = IDLE;
     endcase

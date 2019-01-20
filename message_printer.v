@@ -30,7 +30,7 @@ module message_printer (
 
 	  
   reg  [7:0] result = 8'b0;
-  reg [7:0] amounttoprint_q, amounttoprint_d = 8'd99;
+  reg [7:0] amounttoprint_q, amounttoprint_d = 8'd100;
   wire [7:0] value;
   reg signed [31:0] number1_d,number1_q, number2_d,number2_q = 32'b0;
   reg signed [31:0] multresult_d, multresult_q = 32'b0;
@@ -38,7 +38,7 @@ module message_printer (
   reg signed[7:0] numbertemp;
   reg signed[7:0] numbers [NUMBEROFNUMBER-1:0];
   
-  //reg signed[31:0] AA [0:99][0:99];
+  reg signed[31:0] AAinv [0:99][0:99];
   reg signed[31:0] BB [0:99];
   reg signed[31:0] xi [0:99];
   reg signed[31:0] nablaobs [0:99];
@@ -71,7 +71,7 @@ module message_printer (
   );
   integer ii,i,j,k=0;
   integer counterinitAA=0;
-  
+  //int AAinvval =0;
   initial begin
 	  for (i=0;i<100;i=i+1) begin
 		 for (j=0;j<100;j=j+1)begin
@@ -106,6 +106,24 @@ module message_printer (
           //#10;
         end
 		  AA[0][5] = -32'd47;*/
+		  
+		  /*for (ii=0; ii<100; ii=ii+1)
+        begin
+		     if(ii<4) begin
+				  for (AAinvval = 20; AAinvval <20; AAinvval= AAinvval-1) begin
+				  AAinvval = 20;
+				  AA[ii][ii] = 32'd95; 
+				  AAinvval = 20
+				  end
+			  end
+			  if(ii<95)
+				AA[ii+5][ii] = -32'd47;
+			  if(ii>5)
+			    AA[ii-5][ii] = -32'd47;
+			  
+
+        end*/
+		  
 		  for (k=0;k<100;k=k+1) begin
 			    if(k>94) begin
 				 nablaobs[k] = xi[k]*32'd95 +  xi[k-5]*-32'd47; end
@@ -173,6 +191,7 @@ module message_printer (
 		  startconv = 1'b0;
 		  multresult_d =32'b0;
 		  isneg_d = 1'b0;
+		  amounttoprint_d = 8'd100;
         if ( new_rx_data && rx_data == "h")
           state_d = STATE2;
       end
@@ -280,11 +299,14 @@ module message_printer (
          state_d = CHECKNEG;
 			//valueToPrint_d = 
 			end
-			CHECKNEG: begin
-			addr_d = 4'd12;
-		  if(nablaobs[amounttoprint_q] < 0)begin
-					 valueToPrint_d = -nablaobs[amounttoprint_q];
+		CHECKNEG: begin
+			addr_d = 4'd4;//addr_d = 4'd12;
+/*		  if(nablaobs[amounttoprint_q] < 0)begin
+					 valueToPrint_d = 32'd2147483646;//nablaobs[amounttoprint_q];//-nablaobs[amounttoprint_q];
 					 isneg_d = 1'b1;
+		  end*/
+		  if(amounttoprint_q == 100) begin
+				valueToPrint_d = 32'd2147483646;
 		  end
 		  else begin
 					 valueToPrint_d = nablaobs[amounttoprint_q];
@@ -294,27 +316,34 @@ module message_printer (
 			state_d = WAIT;
 		end
 		WAIT: begin
-		   
-		   //valueToPrint_d =nablaobs[amounttoprint_q];
-		   startconv = 1'b1;
+		   if(amounttoprint_q == 100) begin
+				valueToPrint_d = 32'd2147483646;
+			end
+			else begin
+				valueToPrint_d =nablaobs[amounttoprint_q];
+			end
+			addr_d = 4'd4;
+			amounttoprint_d = amounttoprint_q-1;
+		   /*startconv = 1'b1;
 			if(conversiondone) begin
 			   state_d = PRINT_MESSAGE;
 				amounttoprint_d = amounttoprint_q-1;
 			end
 			else begin
 				state_d = WAIT; 
-			end
+			end*/
+			state_d = PRINT_MESSAGE;
 		end
       PRINT_MESSAGE: begin
 		   startconv = 1'b0;
         if (!tx_busy) begin
           new_tx_data = 1'b1;
           addr_d = addr_q - 1'b1;
-          if (addr_q == 1)
+          if (addr_q == 0)
 			    if(amounttoprint_q == 0)
 						state_d = IDLE;
 				 else
-				     state_d = CHECKNEG;
+				     state_d = CHECKNEG;//CHECKNEG;
         end
       end
       default: state_d = IDLE;
