@@ -8,9 +8,12 @@ module message_printer (
     input new_rx_data,
 	 output [7:0] ledout
   );
+  
+  
    localparam NUMBEROFNUMBER = 4;
   localparam CDIM =5;
-  localparam STATE_SIZE = 4;
+  
+  localparam STATE_SIZE = 6;
   localparam IDLE = 0,
     PRINT_MESSAGE = 1,
 	 STATE2 = 2,
@@ -18,7 +21,19 @@ module message_printer (
 	 CALC = 4,
 	 WAIT = 5,
 	 CHECKNEG = 6,
-	 STARTING =7;
+	 STARTING =7,
+	 XD_STATE = 8,
+	 VEL_STATE = 9,
+	 PRJ_STATE = 10,
+	 OBS_STATE =11,
+	 OBS_STATE_2 = 12,
+	 STEP_STATE = 13,
+	 UPDATE_STATE =14,
+	 UPDATE_STATE_TRIG_1 =15,
+	 UPDATE_STATE_TRIG_2 = 16,
+	 UPDATE_STATE_TRIG_2_temp =17,
+	 UPDATE_STATE_TRIG_3 = 18,
+	 UPDATE_STATE_TRIG_3_temp= 19;
  
   //localparam MESSAGE_LEN = 10;
  
@@ -30,7 +45,7 @@ module message_printer (
 
 	  
   reg  [7:0] result = 8'b0;
-  reg [7:0] amounttoprint_q, amounttoprint_d = 8'd100;
+  reg [7:0] amounttoprint_q, amounttoprint_d = 8'd1;
   wire [7:0] value;
   reg signed [31:0] number1_d,number1_q, number2_d,number2_q = 32'b0;
   reg signed [31:0] multresult_d, multresult_q = 32'b0;
@@ -40,12 +55,65 @@ module message_printer (
   
   reg signed[31:0] AAinv [0:99][0:99];
   reg signed[31:0] BB [0:99];
+  
+   reg signed[31:0] BBsmall [0:5];
+	
+     reg signed[31:0] possmall [0:5];
+	  reg signed[31:0] JJsmall_d  [0:9];
+	  reg signed[31:0] JJsmall_q  [0:9];
+	  
+	  reg signed[31:0] position_a_d[0:1];
+	  reg signed[31:0] position_a_q[0:1];
+	  
+	  reg signed[31:0] position_b_d[0:1];
+	  reg signed[31:0] position_b_q[0:1];
+	  
+     reg signed[31:0] position_c_d[0:1];
+	  reg signed[31:0] position_c_q[0:1];
+
+	  
+	  reg signed[31:0] position_a_old_d[0:1];
+	  reg signed[31:0] position_a_old_q[0:1];
+	  
+	  reg signed[31:0] position_b_old_d[0:1];
+	  reg signed[31:0] position_b_old_q[0:1];
+	  
+     reg signed[31:0] position_c_old_d[0:1];
+	  reg signed[31:0] position_c_old_q[0:1];
+
   reg signed[31:0] xi [0:99];
   reg signed[31:0] nablaobs [0:99];
   
-  reg signed[31:0] obs[0:3];
+  reg signed[31:0] obs[0:1];
+  
 
+    reg signed[31:0] xx_d[0:1];
+	 reg signed[31:0] xx_q[0:1];
+  reg signed[31:0] nabla_smooth_d[0:4];
+  reg signed[31:0] nabla_smooth_q[0:4];
+  reg signed[31:0] qe[0:4];
+  
+  reg signed[31:0] qd_d[0:4];
+  reg signed[31:0] qd_q[0:4];
 
+  reg signed[31:0] xismall_d[0:4];
+  reg signed[31:0] xismall_q[0:4];
+  reg signed[31:0] vel_d;
+  reg signed[31:0] vel_q;
+  reg signed[31:0] xdsmall_d[0:1];
+  reg signed[31:0] xdsmall_q[0:1];
+  reg signed[31:0] xdn_d[0:1];
+  reg signed[31:0] xdn_q[0:1];
+  
+  reg signed[31:0] prj_d[0:3];
+  reg signed[31:0] prj_q[0:3];
+
+  reg signed[31:0] delta_d[0:1];
+  reg signed[31:0] delta_q[0:1];
+
+  
+  
+  
   /* wire [320000-1:0]AA_flattened;
 	integer k,l;
 	for (k=0;k<32;k=k+1) begin
@@ -54,6 +122,71 @@ module message_printer (
 	end
 	end
 	*/
+
+	reg signed [23:0] phasetocalc_d = 23'b0;
+	reg signed [23:0] phasetocalc_q = 23'b0;
+   reg signed [23:0] phasetocalc_temp_d = 23'b0;
+	reg signed [23:0] phasetocalc_temp_q = 23'b0;
+	
+	reg start_d =1'b0;
+	reg start_q =1'b0;
+	wire donecos;
+	wire signed [31:0] cossin;
+	reg signed [15:0] cos;
+	reg signed [15:0] sin;
+	
+	reg [3:0] joint_d = 4'b0;
+	reg [3:0] joint_q = 4'b0;
+	
+	cossin trig (
+  .aclk(clk), // input aclk
+  .s_axis_phase_tvalid(start_q), // input s_axis_phase_tvalid
+  .s_axis_phase_tdata(phasetocalc_q), // input [23 : 0] s_axis_phase_tdata
+  .m_axis_dout_tvalid(donecos), // output m_axis_dout_tvalid
+  .m_axis_dout_tdata(cossin) // output [31 : 0] m_axis_dout_tdata
+		);
+	
+	
+	
+	
+	reg signed [15:0] norm_to_calc_d = 23'b0;
+	reg signed [15:0] norm_to_calc_q = 23'b0;
+	reg start_norm_d =1'b0;
+	reg start_norm_q =1'b0;
+	wire done_norm;
+	wire signed [15:0] norm_result;
+		
+		sqrt norm (
+  .aclk(aclk), // input aclk
+  .s_axis_cartesian_tvalid(start_norm_q), // input s_axis_cartesian_tvalid
+  .s_axis_cartesian_tdata(norm_to_calc_q), // input [15 : 0] s_axis_cartesian_tdata
+  .m_axis_dout_tvalid(done_norm), // output m_axis_dout_tvalid
+  .m_axis_dout_tdata(norm_result) // output [15 : 0] m_axis_dout_tdata
+);
+/*		cossin your_instance_name (
+  .aclk(aclk), // input aclk
+  .s_axis_phase_tvalid(s_axis_phase_tvalid), // input s_axis_phase_tvalid
+  .s_axis_phase_tready(s_axis_phase_tready), // output s_axis_phase_tready
+  .s_axis_phase_tdata(s_axis_phase_tdata), // input [23 : 0] s_axis_phase_tdata
+  .m_axis_dout_tvalid(m_axis_dout_tvalid), // output m_axis_dout_tvalid
+  .m_axis_dout_tdata(m_axis_dout_tdata) // output [31 : 0] m_axis_dout_tdata
+);*/
+		
+/*	div divider (
+  .aclk(clk), // input aclk
+  .s_axis_divisor_tvalid(go), // input s_axis_divisor_tvalid
+  .s_axis_divisor_tdata(temp2), // input [31 : 0] s_axis_divisor_tdata
+  .s_axis_dividend_tvalid(go), // input s_axis_dividend_tvalid
+  .s_axis_dividend_tdata(temp1), // input [31 : 0] s_axis_dividend_tdata
+  .m_axis_dout_tvalid(valid), // output m_axis_dout_tvalid
+  .m_axis_dout_tdata(divout) // output [63 : 0] m_axis_dout_tdata
+		);	 */
+		
+function [17:0] trunc_32_to_18(input [31:0] val32);
+  trunc_32_to_18 = val32[17:0];
+endfunction
+
+		
   assign ledout = count_q;
   //assign ledout = result;
   wire conversiondone;
@@ -92,6 +225,91 @@ module message_printer (
 		BB[97]= 32'd74000;
 		BB[98]= 32'd74000;
 		BB[99]= -32'd74000;
+		
+		 qe[0]=32'b0111_0000_0000_0000_0000;
+		 qe[1]=32'b0111_0000_0000_0000_0000;
+		 qe[2]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
+		 qe[3]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
+		 qe[4]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
+		 
+		 BBsmall[0]=32'b1000000000000011_1000000000000000; //10000000000000111000000000000000
+		 BBsmall[1]=32'b1000000000000011_1000000000000000;
+		 BBsmall[2]=32'b0000000000000000_1100100100001111;
+		 BBsmall[3]=32'b0000000000000000_1100100100001111;
+		 BBsmall[4]=32'b1000000000000000_1100100100001111;
+		 
+		 possmall[0]=32'b0;
+		 possmall[1]=32'b0;
+		 possmall[2]=32'b0;
+	    possmall[3]=32'b0;
+		 possmall[4]=32'b0;
+		 
+		 JJsmall_d[0]={16'd1,16'b0};
+		 JJsmall_d[1]=32'b0;
+		 JJsmall_d[2]=32'b0;
+	    JJsmall_d[3]={16'd1,16'b0};
+		 JJsmall_d[4]=32'b0;
+		 JJsmall_d[5]=32'b0;
+		 JJsmall_d[6]={16'd1,16'b0};
+		 JJsmall_d[7]=32'b0;
+	    JJsmall_d[8]=32'b0;
+		 JJsmall_d[9]=32'b0;
+		 
+		 JJsmall_q[0]={16'd1,16'b0};
+		 JJsmall_q[1]=32'b0;
+		 JJsmall_q[2]=32'b0;
+	    JJsmall_q[3]={16'd1,16'b0};
+		 JJsmall_q[4]=32'b0;
+		 JJsmall_q[5]=32'b0;
+		 JJsmall_q[6]={16'd1,16'b0};
+		 JJsmall_q[7]=32'b0;
+	    JJsmall_q[8]=32'b0;
+		 JJsmall_q[9]=32'b0;
+		 
+		 position_a_d[0]=32'b0;
+		 position_a_d[1]=32'b0;
+		 position_b_d[0]={16'd1,16'b0};
+       position_b_d[1]=32'b0;
+       position_c_d[0]={16'd2,16'b0};
+       position_c_d[1]=32'b0;
+		 
+		 position_a_old_d[0]=32'b0;
+		 position_a_old_d[1]=32'b0;
+		 position_b_old_d[0]={16'd1,16'b0};
+       position_b_old_d[1]=32'b0;
+       position_c_old_d[0]={16'd2,16'b0};
+       position_c_old_d[1]=32'b0;
+		 
+		 position_a_old_q[0]=32'b0;
+		 position_a_old_q[1]=32'b0;
+		 position_b_old_q[0]={16'd1,16'b0};
+       position_b_old_q[1]=32'b0;
+       position_c_old_q[0]={16'd2,16'b0};
+       position_c_old_q[1]=32'b0;
+
+		 joint_d = 4'b0;
+		 
+		 qd_d[0]=32'b0;
+		 qd_d[1]=32'b0;
+		 qd_d[2]=32'b0;
+		 qd_d[3]=32'b0;
+		 qd_d[4]=32'b0;
+
+		 xismall_d[0]=32'b0;
+		 xismall_d[1]=32'b0;
+		 xismall_d[2]=32'b0;
+		 xismall_d[3]=32'b0;
+		 xismall_d[4]=32'b0;
+		 
+		 xismall_q[0]=32'b0;
+		 xismall_q[1]=32'b0;
+		 xismall_q[2]=32'b0;
+		 xismall_q[3]=32'b0;
+		 xismall_q[4]=32'b0;
+		 
+		 xx_d[0] =32'b0;
+		 xx_d[1] =32'b0;
+		 
 /*		for (ii=0; ii<100; ii=ii+1)
         begin
 		     
@@ -133,10 +351,8 @@ module message_printer (
 				 nablaobs[k] = (xi[k-5]*-32'd47)+ xi[k]*32'd95 + xi[k+5]*-32'd47; end
 		  end
 		  
-		  obs[0] = -32'd1320;
-		  obs[1] =  32'd3480;
-		  obs[2] = -32'd1520;
-		  obs[3] =  32'd4240;
+		  obs[0] =  32'd3;
+		  obs[1] =  32'd4;
 		  //[-1320,  3480]  1 columb = 1 obs
         //[-1519,  4240]
 
@@ -156,6 +372,36 @@ module message_printer (
 	 isneg_d = isneg_q;
 	 valueToPrint_d = valueToPrint_q;
 	 amounttoprint_d = amounttoprint_q;
+	 
+	 phasetocalc_d = phasetocalc_q;  //{4'b0, number1_q[31],number1_q[16:0]};
+	 phasetocalc_temp_d = phasetocalc_temp_q;
+	 cos = cossin[31:16];
+	 sin = cossin[15:0];
+	 
+	 
+	 start_d =start_q;
+	 
+     
+	 for (i=0; i<=1; i=i+1)
+		begin
+		 xx_d[i] = xx_q[i];
+	    xdsmall_d[i] = xdsmall_q[i];
+		 vel_d[i] = vel_q[i];
+		 xdn_d[i] = xdn_q[i];
+		 prj_d[i] = prj_q[i];
+		 delta_d[i] = delta_q[i];
+		end
+	 for (i=0; i<=4; i=i+1)
+		begin
+		  xismall_d[i] = xismall_q[i];
+		  nabla_smooth_d[i] = nabla_smooth_q[i];
+		end
+	 for (i=0; i<=9; i=i+1)
+		begin
+		  JJsmall_d[i] = JJsmall_q[i];
+		end
+	
+
 	 
 	 //numbertemp = 8'b0;
 	 //multresult_d = 32'b0;
@@ -183,7 +429,7 @@ module message_printer (
 				 nablaobs[k] = (xi[k-5]*-32'd47)+ xi[k]*32'd95 + xi[k+5]*-32'd47; end
 		  end
 		  
-		  
+			
 		  
 		  valueToPrint_d =nablaobs[99];
         addr_d = 4'd12;
@@ -191,7 +437,7 @@ module message_printer (
 		  startconv = 1'b0;
 		  multresult_d =32'b0;
 		  isneg_d = 1'b0;
-		  amounttoprint_d = 8'd100;
+		  amounttoprint_d = 8'd1;
         if ( new_rx_data && rx_data == "h")
           state_d = STATE2;
       end
@@ -284,21 +530,163 @@ module message_printer (
 
 			//number1_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
 			//number2_d = numbers[0] *1000 + numbers[1] *100 +numbers[2] *10 +numbers[3];
-			number1_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
+			number1_d = 32'b0;//{numbers[3],numbers[2],numbers[1],numbers[0]};
 			number2_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
 
 			state_d = CALC;
+
 			//state_d = CALC;
 			//end
 		end
 		CALC: begin
 
 			//multresult_d = number1_q * number1_q;
-			 multresult_d = number1_q * 2;
+	 nabla_smooth_d[0]=BBsmall[0]+xismall_q[0];
+    nabla_smooth_d[1]=BBsmall[1]+xismall_q[1];
+    nabla_smooth_d[2]=BBsmall[2]+xismall_q[2];
+    nabla_smooth_d[3]=BBsmall[3]+xismall_q[3];
+    nabla_smooth_d[4]=BBsmall[4]+xismall_q[4];
+  
+			qd_d[0] = qe[0]-xismall_q[0];
+			qd_d[1] = qe[1]-xismall_q[1];
+			qd_d[2] = qe[2]-xismall_q[2];
+			qd_d[3] = qe[3]-xismall_q[3];
+			qd_d[4] = qe[4]-xismall_q[4];
+			
+			
+			if(joint_q == 4'd3) begin
+			  JJsmall_d[3] = position_c_old_q[1] - position_c_q[1];
+			  JJsmall_d[8] = position_c_q[0] - position_c_old_q[1];
+			  xx_d[0] = position_c_q[0];
+			  xx_d[1]= position_c_q[0];
+			end
+			else if(joint_q == 4'd2) begin
+			  JJsmall_d[2] = position_b_old_q[1] - position_b_q[1];
+			  JJsmall_d[7] = position_b_q[0] - position_b_old_q[1];
+			  xx_d[0] = position_b_q[0];
+			  xx_d[1]= position_b_q[0];
+			end
+			else if(joint_q == 4'd1) begin
+			JJsmall_d[1] = position_a_old_q[1] - position_a_q[1];
+			  JJsmall_d[6] = position_a_q[0] - position_a_old_q[1];
+			  xx_d[0] = position_a_q[0];
+			  xx_d[1]= position_a_q[0];
+			end
+			 //multresult_d = number1_q * 2;
           //result =  number1* number2;
-         state_d = CHECKNEG;
+         
+			
+			state_d = XD_STATE;
 			//valueToPrint_d = 
 			end
+	   XD_STATE: begin
+		
+				xdsmall_d[0] =   qd_q[0]+(qd_q[2]*JJsmall_q[2])+(qd_q[3]*JJsmall_q[3]);
+				xdsmall_d[1] =   qd_q[1]+(qd_q[2]*JJsmall_q[7])+(qd_q[3]*JJsmall_q[8]);
+				state_d = VEL_STATE;
+		end
+		VEL_STATE: begin
+				
+				vel_d = xdsmall_q[0] +xdsmall_q[1];
+				xdn_d[0] = xdsmall_q[0]>>2;
+				xdn_d[1] = xdsmall_q[1]>>2;
+				
+				state_d = PRJ_STATE;
+		end
+		PRJ_STATE: begin
+		
+				prj_d[0] =   32'd1- xdn_q[0]*xdn_q[0];
+				prj_d[1] =   -(xdn_q[0]*xdn_q[1]);
+				prj_d[2] =   -(xdn_q[1]*xdn_q[0]);
+				prj_d[3] =   32'd1-(xdn_q[1]*xdn_q[1]);
+				
+				delta_d[0] = xx_q[0]-obs[0];
+				delta_d[1] = xx_q[1]-obs[1];
+				
+				state_d = OBS_STATE;
+				
+		end
+		OBS_STATE: begin
+		    start_norm_d = 1'b1;
+			 
+			 
+			 
+			 
+			state_d = OBS_STATE_2;
+				// if(done_norm == 1'b1)begin
+					//	state_d = OBS_STATE_2;
+				//end
+		end
+		OBS_STATE_2: begin
+		
+				state_d = STEP_STATE;
+				end
+		STEP_STATE: begin
+		
+		    for (i=0; i<=4; i=i+1)
+				begin
+			xismall_d[i] = xismall_q[i]-(nabla_smooth_q[i]>>8);
+		   end
+		   state_d = UPDATE_STATE;
+		end
+		
+		UPDATE_STATE: begin
+		   for (i=0; i<=1; i=i+1)
+			begin
+		   position_a_old_d[i] = position_a_q[i];
+			position_b_old_d[i] = position_b_q[i];
+			position_c_old_d[i] = position_c_q[i];
+			end
+			joint_d = joint_q +1'b1;
+			state_d = UPDATE_STATE_TRIG_1;
+		end
+		UPDATE_STATE_TRIG_1: begin
+		 
+			
+		 
+		 phasetocalc_d =  trunc_32_to_18(xismall_q[2]); 
+		 
+		 start_d = 1'b1;
+		 if(donecos == 1'b1)begin
+		     state_d = UPDATE_STATE_TRIG_2;
+			  position_a_d[0] =  {14'b0, cossin[31:16],2'b0};
+			  position_a_d[1] =  {14'b0, cossin[15:0],2'b0};
+			  start_d = 1'b0;
+				end
+		end
+		UPDATE_STATE_TRIG_2: begin
+		 
+		 phasetocalc_d = trunc_32_to_18(xismall_q[2]) +trunc_32_to_18(xismall_q[3]); 
+		 
+		 start_d = 1'b1;
+		 state_d = UPDATE_STATE_TRIG_2_temp;
+		 
+		end
+		UPDATE_STATE_TRIG_2_temp: begin
+		     if(donecos == 1'b1)begin
+		     position_b_d[0] =  {14'b0, cossin[31:16],2'b0};
+			  position_b_d[1] =  {14'b0, cossin[15:0],2'b0};
+			   start_d = 1'b0;
+						state_d = UPDATE_STATE_TRIG_3;
+						phasetocalc_temp_d = phasetocalc_q;
+				end
+		end
+		UPDATE_STATE_TRIG_3: begin
+		 
+		 phasetocalc_d = trunc_32_to_18(phasetocalc_temp_q) +trunc_32_to_18(xismall_q[4]); 
+		 state_d = UPDATE_STATE_TRIG_3_temp;
+		 start_d = 1'b1;
+		
+		end
+		UPDATE_STATE_TRIG_3_temp: begin
+			if(donecos == 1'b1)begin
+				  position_c_d[0] =  {14'b0, cossin[31:16],2'b0};
+				  position_c_d[1] =  {14'b0, cossin[15:0],2'b0};
+					start_d = 1'b0;
+					state_d = CHECKNEG;
+			end
+		end
+		
 		CHECKNEG: begin
 			addr_d = 4'd4;//addr_d = 4'd12;
 /*		  if(nablaobs[amounttoprint_q] < 0)begin
@@ -309,7 +697,7 @@ module message_printer (
 				valueToPrint_d = 32'd2147483646;
 		  end
 		  else begin
-					 valueToPrint_d = nablaobs[amounttoprint_q];
+					 valueToPrint_d = cossin[31:0];//{8'b0,phasetocacl};//cossin[31:0];//multresult_d;//nablaobs[amounttoprint_q];
 					 isneg_d = 1'b0;
 		  end
 			//result =  number1* number2;
@@ -320,7 +708,7 @@ module message_printer (
 				valueToPrint_d = 32'd2147483646;
 			end
 			else begin
-				valueToPrint_d =nablaobs[amounttoprint_q];
+				valueToPrint_d = cossin[31:0];//{8'b0,phasetocacl};//cossin[31:0];//multresult_d;//nablaobs[amounttoprint_q];
 			end
 			addr_d = 4'd4;
 			amounttoprint_d = amounttoprint_q-1;
@@ -332,7 +720,8 @@ module message_printer (
 			else begin
 				state_d = WAIT; 
 			end*/
-			state_d = PRINT_MESSAGE;
+	      // if(valueToPrint_q == 32'b0)begin
+			state_d = PRINT_MESSAGE;//end
 		end
       PRINT_MESSAGE: begin
 		   startconv = 1'b0;
@@ -367,6 +756,47 @@ module message_printer (
 	 isneg_q <= isneg_d;
 	 amounttoprint_q <= amounttoprint_d;
 	 valueToPrint_q <= valueToPrint_d;
+	 start_q <= start_d;
+	 start_norm_q <= start_norm_d;
+	 
+	 phasetocalc_q <= phasetocalc_d;
+	 phasetocalc_temp_q <= phasetocalc_temp_d;
+	 
+	 for (i=0; i<=1; i=i+1)
+	 begin
+	 position_a_old_q[i] <=  position_a_old_d[i];
+	 position_b_old_q[i] <= position_b_old_d[i];
+	 position_c_old_q[i] <= position_c_old_d[i];
+	 position_a_q[i] <= position_a_d[i];
+	 position_b_q[i] <= position_b_d[i];
+	 position_c_q[i] <= position_c_d[i]; 
+	 xx_q[i] <= xx_d[i];
+	
+	 xdsmall_q[i] <= xdsmall_d[i];
+	 xdn_q[i] <= xdn_d[i];
+	 delta_q[i] <= delta_d[i];
+	 end
+	 
+	 for(i=0; i<=9; i=i+1)
+	 begin
+		JJsmall_q[i] =JJsmall_d[i];
+	 end
+	 
+	 
+	 for (i=0; i<=4; i=i+1)
+		begin
+		  nabla_smooth_q[i] <= nabla_smooth_d[i];
+		  xismall_q[i] <= xismall_d[i];
+		  qd_q[i] <= qd_d[i];
+		end
+	 
+	 for (i=0; i<=3; i=i+1)
+		begin
+		  prj_q[i] <= prj_d[i];
+		end
+
+	 vel_q <= vel_d;
+	 
   end
  
 endmodule

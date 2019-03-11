@@ -62,22 +62,22 @@
 -- Using this testbench
 --
 -- This testbench instantiates your generated CORDIC core
--- named "sqrt".
+-- named "cossin".
 --
 -- There are two versions of your core that you can use in this testbench:
 -- the XilinxCoreLib behavioral model or the generated netlist.
 --
 -- 1. XilinxCoreLib behavioral model
---    Compile sqrt.vhd into the work library.  See your
+--    Compile cossin.vhd into the work library.  See your
 --    simulator documentation for more information on how to do this.
 --
 -- 2. Generated netlist
 --    Execute the following command in the directory containing your CORE
 --    Generator output files, to create a VHDL netlist:
 --
---      netgen -sim -ofmt vhdl sqrt.ngc sqrt_netlist.vhd
+--      netgen -sim -ofmt vhdl cossin.ngc cossin_netlist.vhd
 --
---    Compile sqrt_netlist.vhd into the work library.  See your
+--    Compile cossin_netlist.vhd into the work library.  See your
 --    simulator documentation for more information on how to do this.
 --
 ---------------------------------------------------------------------------
@@ -87,10 +87,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
-entity tb_sqrt is
-end tb_sqrt;
+entity tb_cossin is
+end tb_cossin;
 
-architecture tb of tb_sqrt is
+architecture tb of tb_cossin is
 
   -----------------------------------------------------------------------
   -- Timing constants
@@ -110,11 +110,11 @@ architecture tb of tb_sqrt is
 
   -- Slave channel CARTESIAN inputs
   signal s_axis_cartesian_tvalid    : std_logic := '0';  -- TVALID for channel S_AXIS_CARTESIAN
-  signal s_axis_cartesian_tdata     : std_logic_vector(15 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_CARTESIAN
+  signal s_axis_cartesian_tdata     : std_logic_vector(47 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_CARTESIAN
 
   -- Slave channel PHASE inputs
   signal s_axis_phase_tvalid    : std_logic := '0';  -- TVALID for channel S_AXIS_PHASE
-  signal s_axis_phase_tdata     : std_logic_vector(15 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_PHASE
+  signal s_axis_phase_tdata     : std_logic_vector(23 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_PHASE
 
   -----------------------------------------------------------------------
   -- DUT output signals
@@ -122,7 +122,7 @@ architecture tb of tb_sqrt is
 
   -- Master channel DOUT outputs
   signal m_axis_dout_tvalid : std_logic := '0';  -- TVALID for channel M_AXIS_DOUT
-  signal m_axis_dout_tdata  : std_logic_vector(15 downto 0) := (others => '0');  -- TDATA for channel M_AXIS_DOUT
+  signal m_axis_dout_tdata  : std_logic_vector(31 downto 0) := (others => '0');  -- TDATA for channel M_AXIS_DOUT
 
   -----------------------------------------------------------------------
   -- Aliases for AXI channel TDATA fields
@@ -130,13 +130,13 @@ architecture tb of tb_sqrt is
   -- If using ModelSim or Questa, add "-voptargs=+acc=n" to the vsim command
   -- to prevent the simulator optimizing away these signals.
   -----------------------------------------------------------------------
-  signal s_axis_cartesian_tdata_real     : std_logic_vector(15 downto 0) := (others => '0');
-  signal s_axis_cartesian_tdata_imag     : std_logic_vector(15 downto 0) := (others => '0');
-  signal s_axis_phase_tdata_real         : std_logic_vector(15 downto 0) := (others => '0');
+  signal s_axis_cartesian_tdata_real     : std_logic_vector(17 downto 0) := (others => '0');
+  signal s_axis_cartesian_tdata_imag     : std_logic_vector(17 downto 0) := (others => '0');
+  signal s_axis_phase_tdata_real         : std_logic_vector(17 downto 0) := (others => '0');
 
-  signal m_axis_dout_tdata_real  : std_logic_vector(8 downto 0) := (others => '0');
-  signal m_axis_dout_tdata_imag  : std_logic_vector(8 downto 0) := (others => '0');
-  signal m_axis_dout_tdata_phase : std_logic_vector(8 downto 0) := (others => '0');
+  signal m_axis_dout_tdata_real  : std_logic_vector(15 downto 0) := (others => '0');
+  signal m_axis_dout_tdata_imag  : std_logic_vector(15 downto 0) := (others => '0');
+  signal m_axis_dout_tdata_phase : std_logic_vector(15 downto 0) := (others => '0');
   -----------------------------------------------------------------------
   -- Testbench signals
   -----------------------------------------------------------------------
@@ -151,10 +151,10 @@ architecture tb of tb_sqrt is
   -----------------------------------------------------------------------
 
   constant IP_CARTESIAN_DEPTH : integer := 30;
-  constant IP_CARTESIAN_WIDTH : integer := 16;
+  constant IP_CARTESIAN_WIDTH : integer := 18;
   constant IP_CARTESIAN_SHIFT : integer := 3;  -- bit shift for amplitude
   constant IP_PHASE_DEPTH : integer := 32;
-  constant IP_PHASE_WIDTH : integer := 16;
+  constant IP_PHASE_WIDTH : integer := 18;
   constant IP_PHASE_SHIFT : integer := 0;  -- no bit shift, max amplitude
   type T_IP_INT_ENTRY is record
     re : integer;
@@ -220,11 +220,11 @@ begin
   -- Instantiate the DUT
   -----------------------------------------------------------------------
 
-  dut : entity work.sqrt
+  dut : entity work.cossin
     port map (
       aclk                => aclk,
-      s_axis_cartesian_tvalid     => s_axis_cartesian_tvalid,
-      s_axis_cartesian_tdata      => s_axis_cartesian_tdata,
+      s_axis_phase_tvalid     => s_axis_phase_tvalid,
+      s_axis_phase_tdata      => s_axis_phase_tdata,
       m_axis_dout_tvalid  => m_axis_dout_tvalid,
       m_axis_dout_tdata   => m_axis_dout_tdata
       );
@@ -316,8 +316,11 @@ begin
       if cartesian_tvalid_nxt /= '1' then
         s_axis_cartesian_tdata <= (others => 'X');
       else
-        -- TDATA: Real and imaginary components are each 16 bits wide and byte-aligned at their LSBs
-        s_axis_cartesian_tdata(15 downto 0) <= IP_CARTESIAN_DATA(ip_cartesian_index).re;
+        -- TDATA: Real and imaginary components are each 18 bits wide and byte-aligned at their LSBs
+        s_axis_cartesian_tdata(17 downto 0) <= IP_CARTESIAN_DATA(ip_cartesian_index).re;
+        s_axis_cartesian_tdata(23 downto 18) <= (others => IP_CARTESIAN_DATA(ip_cartesian_index).re(17));  -- sign-extend;
+        s_axis_cartesian_tdata(41 downto 24) <= IP_CARTESIAN_DATA(ip_cartesian_index).im;
+        s_axis_cartesian_tdata(47 downto 42) <= (others => IP_CARTESIAN_DATA(ip_cartesian_index).im(17));  -- sign-extend;
 
       end if;
 
@@ -326,8 +329,9 @@ begin
       if phase_tvalid_nxt /= '1' then
         s_axis_phase_tdata <= (others => 'X');
       else
-        -- TDATA: Real component is 16 bits wide and byte-aligned at its LSBs
-        s_axis_phase_tdata(15 downto 0) <= IP_PHASE_DATA(ip_phase_index).re;
+        -- TDATA: Real component is 18 bits wide and byte-aligned at its LSBs
+        s_axis_phase_tdata(17 downto 0) <= IP_PHASE_DATA(ip_phase_index).re;
+        s_axis_phase_tdata(23 downto 18) <= (others => IP_PHASE_DATA(ip_phase_index).re(17));  -- sign-extend
       end if;
 
       -- Increment input data indices
@@ -382,9 +386,10 @@ begin
   -- Assign TDATA fields to aliases, for easy simulator waveform viewing
   -----------------------------------------------------------------------
 
-    s_axis_cartesian_tdata_real  <= s_axis_cartesian_tdata(15 downto 0);
-          
-    m_axis_dout_tdata_real       <= m_axis_dout_tdata(8 downto 0);
+          s_axis_phase_tdata_real      <= s_axis_phase_tdata(17 downto 0);
+  
+    m_axis_dout_tdata_real       <= m_axis_dout_tdata(15 downto 0);
+  m_axis_dout_tdata_imag       <= m_axis_dout_tdata(31 downto 16);
   
 end tb;
 

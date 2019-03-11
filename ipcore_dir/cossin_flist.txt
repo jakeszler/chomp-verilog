@@ -1,0 +1,16 @@
+# Output products list for <cossin>
+_xmsgs\pn_parser.xmsgs
+cossin.asy
+cossin.gise
+cossin.ngc
+cossin.sym
+cossin.v
+cossin.veo
+cossin.xco
+cossin.xise
+cossin\doc\cordic_v5_0_readme.txt
+cossin\doc\cordic_v5_0_vinfo.html
+cossin\doc\ds858_cordic.pdf
+cossin_flist.txt
+cossin_xmdf.tcl
+demo_tb\tb_cossin.vhd

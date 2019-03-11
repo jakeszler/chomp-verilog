@@ -53,17 +53,18 @@
 // (in parentheses) to your own signal names.
 
 //----------- Begin Cut here for INSTANTIATION Template ---// INST_TAG
-sqrt your_instance_name (
+cossin your_instance_name (
   .aclk(aclk), // input aclk
-  .s_axis_cartesian_tvalid(s_axis_cartesian_tvalid), // input s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata(s_axis_cartesian_tdata), // input [15 : 0] s_axis_cartesian_tdata
+  .s_axis_phase_tvalid(s_axis_phase_tvalid), // input s_axis_phase_tvalid
+  .s_axis_phase_tready(s_axis_phase_tready), // output s_axis_phase_tready
+  .s_axis_phase_tdata(s_axis_phase_tdata), // input [23 : 0] s_axis_phase_tdata
   .m_axis_dout_tvalid(m_axis_dout_tvalid), // output m_axis_dout_tvalid
-  .m_axis_dout_tdata(m_axis_dout_tdata) // output [15 : 0] m_axis_dout_tdata
+  .m_axis_dout_tdata(m_axis_dout_tdata) // output [31 : 0] m_axis_dout_tdata
 );
 // INST_TAG_END ------ End INSTANTIATION Template ---------
 
-// You must compile the wrapper file sqrt.v when simulating
-// the core, sqrt. When compiling the wrapper file, be sure to
+// You must compile the wrapper file cossin.v when simulating
+// the core, cossin. When compiling the wrapper file, be sure to
 // reference the XilinxCoreLib Verilog simulation library. For detailed
 // instructions, please refer to the "CORE Generator Help".
 
