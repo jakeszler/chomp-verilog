@@ -29,7 +29,7 @@ SET_PARAMETER Architectural_Configuration Word_Serial
 SET_PARAMETER Pipelining_Mode Maximum
 SET_PARAMETER Data_Format SignedFraction
 SET_PARAMETER Phase_Format Radians
-SET_PARAMETER Input_Width 18
+SET_PARAMETER Input_Width 19
 SET_PARAMETER Output_Width 16
 SET_PARAMETER Round_Mode Truncate
 SET_PARAMETER Iterations 0

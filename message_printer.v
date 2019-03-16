@@ -33,13 +33,14 @@ module message_printer (
 	 UPDATE_STATE_TRIG_2 = 16,
 	 UPDATE_STATE_TRIG_2_temp =17,
 	 UPDATE_STATE_TRIG_3 = 18,
-	 UPDATE_STATE_TRIG_3_temp= 19;
- 
+	 UPDATE_STATE_TRIG_3_temp= 19,
+	 CALC_PREP= 20;
+    
   //localparam MESSAGE_LEN = 10;
  
   reg [STATE_SIZE-1:0] state_d, state_q;
  
-
+  reg signed[31:0] cyclecount_d, cyclecount_q;
   reg signed[7:0] addr_d, addr_q;
    reg [7:0] count_d,  count_q;
 
@@ -56,9 +57,9 @@ module message_printer (
   reg signed[31:0] AAinv [0:99][0:99];
   reg signed[31:0] BB [0:99];
   
-   reg signed[31:0] BBsmall [0:5];
+   reg signed[31:0] BBsmall [0:4];
 	
-     reg signed[31:0] possmall [0:5];
+     reg signed[31:0] possmall [0:4];
 	  reg signed[31:0] JJsmall_d  [0:9];
 	  reg signed[31:0] JJsmall_q  [0:9];
 	  
@@ -123,10 +124,11 @@ module message_printer (
 	end
 	*/
 
-	reg signed [23:0] phasetocalc_d = 23'b0;
-	reg signed [23:0] phasetocalc_q = 23'b0;
-   reg signed [23:0] phasetocalc_temp_d = 23'b0;
-	reg signed [23:0] phasetocalc_temp_q = 23'b0;
+	reg signed [18:0] phasetocalc_d = 18'b0;
+	reg signed [18:0] phasetocalc_q = 18'b0;
+   reg signed [18:0] phasetocalc_temp_d = 18'b0;
+	reg signed [18:0] phasetocalc_temp_q = 18'b0;
+	reg signed [23:0] phasetocalc_real = 24'b0;
 	
 	reg start_d =1'b0;
 	reg start_q =1'b0;
@@ -135,13 +137,13 @@ module message_printer (
 	reg signed [15:0] cos;
 	reg signed [15:0] sin;
 	
-	reg [3:0] joint_d = 4'b0;
-	reg [3:0] joint_q = 4'b0;
+	reg [3:0] joint_d = 4'b1;
+	reg [3:0] joint_q = 4'b1;
 	
 	cossin trig (
   .aclk(clk), // input aclk
   .s_axis_phase_tvalid(start_q), // input s_axis_phase_tvalid
-  .s_axis_phase_tdata(phasetocalc_q), // input [23 : 0] s_axis_phase_tdata
+  .s_axis_phase_tdata(phasetocalc_real), // input [23 : 0] s_axis_phase_tdata
   .m_axis_dout_tvalid(donecos), // output m_axis_dout_tvalid
   .m_axis_dout_tdata(cossin) // output [31 : 0] m_axis_dout_tdata
 		);
@@ -156,10 +158,13 @@ module message_printer (
 	wire done_norm;
 	wire signed [15:0] norm_result;
 		
+	reg signed [31:0] tempnumber0 = 32'b0;
+		reg signed [31:0] tempnumber1 = 32'b0;
+		
 		sqrt norm (
   .aclk(aclk), // input aclk
   .s_axis_cartesian_tvalid(start_norm_q), // input s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata(norm_to_calc_q), // input [15 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tdata(phasetocalc_real), // input [15 : 0] s_axis_cartesian_tdata
   .m_axis_dout_tvalid(done_norm), // output m_axis_dout_tvalid
   .m_axis_dout_tdata(norm_result) // output [15 : 0] m_axis_dout_tdata
 );
@@ -182,8 +187,8 @@ module message_printer (
   .m_axis_dout_tdata(divout) // output [63 : 0] m_axis_dout_tdata
 		);	 */
 		
-function [17:0] trunc_32_to_18(input [31:0] val32);
-  trunc_32_to_18 = val32[17:0];
+function [18:0] trunc_32_to_18(input [31:0] val32);
+  trunc_32_to_18 = val32[18:0];
 endfunction
 
 		
@@ -192,6 +197,9 @@ endfunction
   wire conversiondone;
   reg startconv,startconv_q = 1'b0;
   reg isneg_q,isneg_d = 1'b0;
+  reg flag = 1'b0;
+  
+  
   
   message_rom message_rom (
   .clk(clk),
@@ -226,17 +234,17 @@ endfunction
 		BB[98]= 32'd74000;
 		BB[99]= -32'd74000;
 		
-		 qe[0]=32'b0111_0000_0000_0000_0000;
-		 qe[1]=32'b0111_0000_0000_0000_0000;
-		 qe[2]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
-		 qe[3]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
-		 qe[4]=32'b1000_0000_0000_0001_1001_1001_1001_1001; //-7
+		 qe[0]=32'b00000000000001110000000000000000;
+		 qe[1]=32'b00000000000001110000000000000000;
+		 qe[2]=32'b11111111111111100110110111100000; //-7
+		 qe[3]=32'b11111111111111100110110111100000; //-7
+		 qe[4]=32'b00000000000000011001001000100000; //-7
 		 
-		 BBsmall[0]=32'b1000000000000011_1000000000000000; //10000000000000111000000000000000
-		 BBsmall[1]=32'b1000000000000011_1000000000000000;
-		 BBsmall[2]=32'b0000000000000000_1100100100001111;
-		 BBsmall[3]=32'b0000000000000000_1100100100001111;
-		 BBsmall[4]=32'b1000000000000000_1100100100001111;
+		 BBsmall[0]=32'b11111111111111001000000000000000; //10000000000000111000000000000000
+		 BBsmall[1]=32'b11111111111111001000000000000000;
+		 BBsmall[2]=32'b00000000000000001100100100010000;
+		 BBsmall[3]=32'b00000000000000001100100100010000;
+		 BBsmall[4]=32'b11111111111111110011011011110000;
 		 
 		 possmall[0]=32'b0;
 		 possmall[1]=32'b0;
@@ -247,7 +255,7 @@ endfunction
 		 JJsmall_d[0]={16'd1,16'b0};
 		 JJsmall_d[1]=32'b0;
 		 JJsmall_d[2]=32'b0;
-	    JJsmall_d[3]={16'd1,16'b0};
+	    JJsmall_d[3]={16'd0,16'b0};
 		 JJsmall_d[4]=32'b0;
 		 JJsmall_d[5]=32'b0;
 		 JJsmall_d[6]={16'd1,16'b0};
@@ -258,7 +266,7 @@ endfunction
 		 JJsmall_q[0]={16'd1,16'b0};
 		 JJsmall_q[1]=32'b0;
 		 JJsmall_q[2]=32'b0;
-	    JJsmall_q[3]={16'd1,16'b0};
+	    JJsmall_q[3]={16'd0,16'b0};
 		 JJsmall_q[4]=32'b0;
 		 JJsmall_q[5]=32'b0;
 		 JJsmall_q[6]={16'd1,16'b0};
@@ -287,7 +295,7 @@ endfunction
        position_c_old_q[0]={16'd2,16'b0};
        position_c_old_q[1]=32'b0;
 
-		 joint_d = 4'b0;
+		 joint_d = 4'b1;
 		 
 		 qd_d[0]=32'b0;
 		 qd_d[1]=32'b0;
@@ -310,6 +318,8 @@ endfunction
 		 xx_d[0] =32'b0;
 		 xx_d[1] =32'b0;
 		 
+		 cyclecount_d =32'b0;
+		 cyclecount_q =32'b0;
 /*		for (ii=0; ii<100; ii=ii+1)
         begin
 		     
@@ -378,9 +388,10 @@ endfunction
 	 cos = cossin[31:16];
 	 sin = cossin[15:0];
 	 
+	 cyclecount_d =cyclecount_q;
 	 
 	 start_d =start_q;
-	 
+	 joint_d= joint_q;
      
 	 for (i=0; i<=1; i=i+1)
 		begin
@@ -533,10 +544,28 @@ endfunction
 			number1_d = 32'b0;//{numbers[3],numbers[2],numbers[1],numbers[0]};
 			number2_d = {numbers[3],numbers[2],numbers[1],numbers[0]};
 
-			state_d = CALC;
-
+			state_d = CALC_PREP;
+			
 			//state_d = CALC;
 			//end
+		end
+		CALC_PREP: begin
+		cyclecount_d = cyclecount_q +1'b1;
+			if(joint_q == 4'd3) begin
+			  xx_d[0] = position_c_q[0];
+			  xx_d[1]= position_c_q[1];
+			end
+		  else if(joint_q == 4'd2) begin
+
+			  xx_d[0] = position_b_q[0];
+			  xx_d[1]= position_b_q[1];
+			end
+			else if(joint_q == 4'd1) begin
+			  xx_d[0] = position_a_q[0];
+			  xx_d[1]= position_a_q[1];
+			end
+		
+		state_d = CALC;
 		end
 		CALC: begin
 
@@ -553,24 +582,31 @@ endfunction
 			qd_d[3] = qe[3]-xismall_q[3];
 			qd_d[4] = qe[4]-xismall_q[4];
 			
-			
+			JJsmall_d[0] = {16'b1,16'b0};
+			JJsmall_d[6] = {16'b1,16'b0};
 			if(joint_q == 4'd3) begin
-			  JJsmall_d[3] = position_c_old_q[1] - position_c_q[1];
-			  JJsmall_d[8] = position_c_q[0] - position_c_old_q[1];
-			  xx_d[0] = position_c_q[0];
-			  xx_d[1]= position_c_q[0];
+			  JJsmall_d[4] = position_c_old_q[1] - xx_q[1];
+			  JJsmall_d[9] = xx_q[0] - position_c_old_q[0];
+			  JJsmall_d[3] = position_b_old_q[1] - xx_q[1];
+			  JJsmall_d[8] = xx_q[0] - position_b_old_q[0];
+			  JJsmall_d[2] = position_a_old_q[1] - xx_q[1];
+			  JJsmall_d[7] = xx_q[0] - position_a_old_q[0];
+			  //xx_d[0] = position_c_q[0];
+			  //xx_d[1]= position_c_q[1];
 			end
 			else if(joint_q == 4'd2) begin
-			  JJsmall_d[2] = position_b_old_q[1] - position_b_q[1];
-			  JJsmall_d[7] = position_b_q[0] - position_b_old_q[1];
-			  xx_d[0] = position_b_q[0];
-			  xx_d[1]= position_b_q[0];
+			  JJsmall_d[3] = position_b_old_q[1] - xx_q[1];
+			  JJsmall_d[8] = xx_q[0] - position_b_old_q[0];
+			  JJsmall_d[2] = position_a_old_q[1] - xx_q[1];
+			  JJsmall_d[7] = xx_q[0] - position_a_old_q[0];
+			  //xx_d[0] = position_b_q[0];
+			  //xx_d[1]= position_b_q[1];
 			end
 			else if(joint_q == 4'd1) begin
-			JJsmall_d[1] = position_a_old_q[1] - position_a_q[1];
-			  JJsmall_d[6] = position_a_q[0] - position_a_old_q[1];
-			  xx_d[0] = position_a_q[0];
-			  xx_d[1]= position_a_q[0];
+			JJsmall_d[2] = position_a_old_q[1] - xx_q[1];
+			  JJsmall_d[7] = xx_q[0] - position_a_old_q[0];
+			  //xx_d[0] = position_a_q[0];
+			  //xx_d[1]= position_a_q[1];
 			end
 			 //multresult_d = number1_q * 2;
           //result =  number1* number2;
@@ -618,14 +654,21 @@ endfunction
 				//end
 		end
 		OBS_STATE_2: begin
-		
-				state_d = STEP_STATE;
+				joint_d = joint_q +1'b1;
+				
+				if(joint_q >= 3) begin
+					   state_d = STEP_STATE;
+					end
+					else begin
+					   state_d = CALC_PREP;
+					end
+				
 				end
 		STEP_STATE: begin
 		
 		    for (i=0; i<=4; i=i+1)
 				begin
-			xismall_d[i] = xismall_q[i]-(nabla_smooth_q[i]>>8);
+			xismall_d[i] = xismall_q[i]-(nabla_smooth_q[i]>>>7); // div 128 
 		   end
 		   state_d = UPDATE_STATE;
 		end
@@ -637,26 +680,59 @@ endfunction
 			position_b_old_d[i] = position_b_q[i];
 			position_c_old_d[i] = position_c_q[i];
 			end
-			joint_d = joint_q +1'b1;
 			state_d = UPDATE_STATE_TRIG_1;
 		end
 		UPDATE_STATE_TRIG_1: begin
-		 
-			
-		 
 		 phasetocalc_d =  trunc_32_to_18(xismall_q[2]); 
+		/* if(32'd205881 < xismall_q[2]) begin
+			phasetocalc_d =  trunc_32_to_18(xismall_q[2]); 
+			flag = 1'b0;
+		 end
+		 else if(32'd205881 >= xismall_q[2]) begin
+		   flag = 1'b1;
+			phasetocalc_d =  trunc_32_to_18(xismall_q[2]-32'd205881); 
+		 end*/
 		 
 		 start_d = 1'b1;
 		 if(donecos == 1'b1)begin
 		     state_d = UPDATE_STATE_TRIG_2;
-			  position_a_d[0] =  {14'b0, cossin[31:16],2'b0};
-			  position_a_d[1] =  {14'b0, cossin[15:0],2'b0};
+			  
+			  ////tempnumber0 = {14'b0, cossin[31:16],2'b0};
+			   tempnumber1 = {14'b0, cossin[15:0],2'b0};
+				if(cossin[31] == 1'b1) begin
+					 tempnumber0 =  {{14{1'b1}}, cossin[31:16],2'b0};
+					 position_a_d[0] =  xismall_q[0]+{{14{1'b1}}, cossin[31:16],2'b0};
+				end
+				else if(cossin[31] == 1'b0)begin
+					tempnumber0 =  {14'b0, cossin[31:16],2'b0};
+				    position_a_d[0] =  xismall_q[0]+{14'b0, cossin[31:16],2'b0};
+				end
+				
+				if(cossin[15] == 1'b1) begin
+				tempnumber1 =  {{14{1'b1}}, cossin[15:0],2'b0};
+				position_a_d[1] =  xismall_q[1]+ {{14{1'b1}},cossin[15:0] ,2'b0};
+				end
+				else if(cossin[15] == 1'b0) begin
+				tempnumber1 =  {14'b0, cossin[15:0],2'b0};
+				position_a_d[1] =  xismall_q[1]+ {14'b0,cossin[15:0] ,2'b0};
+				end
+				
+			  //position_a_d[0] =   xismall_q[0]+{14'b0, cossin[31:16],2'b0};
+			  //position_a_d[1] =  xismall_q[1]+ {14'b0, cossin[15:0],2'b0};
 			  start_d = 1'b0;
 				end
 		end
 		UPDATE_STATE_TRIG_2: begin
 		 
-		 phasetocalc_d = trunc_32_to_18(xismall_q[2]) +trunc_32_to_18(xismall_q[3]); 
+	/*	 if(32'd205881 < (xismall_q[2]+xismall_q[3])) begin
+			phasetocalc_d =  trunc_32_to_18(xismall_q[2]+xismall_q[3]);
+			flag = 1'b0;
+		 end
+		 else  begin
+		   flag = 1'b1;
+			phasetocalc_d =  trunc_32_to_18((xismall_q[2]+xismall_q[3])-32'd205881); 
+		 end*/
+		 phasetocalc_d = trunc_32_to_18(xismall_q[2]+ xismall_q[3]); 
 		 
 		 start_d = 1'b1;
 		 state_d = UPDATE_STATE_TRIG_2_temp;
@@ -664,26 +740,78 @@ endfunction
 		end
 		UPDATE_STATE_TRIG_2_temp: begin
 		     if(donecos == 1'b1)begin
-		     position_b_d[0] =  {14'b0, cossin[31:16],2'b0};
-			  position_b_d[1] =  {14'b0, cossin[15:0],2'b0};
+			  //tempnumber0 = {14'b0, cossin[31:16],2'b0};
+			  // tempnumber1 = {14'b0, cossin[15:0],2'b0};
+				if(cossin[31] == 1'b1)begin
+					 tempnumber0 =  {{14{1'b1}}, cossin[31:16],2'b0};
+					 position_b_d[0] =  position_a_q[0]+{{14{1'b1}}, cossin[31:16],2'b0};
+				end
+				else if(cossin[31] == 1'b0)begin
+				    tempnumber0 =  {14'b0, cossin[31:16],2'b0};
+				    position_b_d[0] =  position_a_q[0]+{14'b0, cossin[31:16],2'b0};
+				end
+				
+				if(cossin[15] == 1'b1)begin
+				tempnumber1 =  {{14{1'b1}}, cossin[15:0],2'b0};
+				position_b_d[1] =  position_a_q[1]+ {{14{1'b1}},cossin[15:0] ,2'b0};
+				end
+				else if(cossin[15] == 1'b0)begin
+				tempnumber1 =  {14'b0, cossin[15:0],2'b0};
+				position_b_d[1] =  position_a_q[1]+ {14'b0,cossin[15:0] ,2'b0};
+				end
+				
+		     //position_b_d[0] =  position_a_q[0]+{14'b0, cossin[31:16],2'b0};
+			  //position_b_d[1] =  position_a_q[1]+{14'b0, cossin[15:0],2'b0};
 			   start_d = 1'b0;
 						state_d = UPDATE_STATE_TRIG_3;
 						phasetocalc_temp_d = phasetocalc_q;
 				end
 		end
 		UPDATE_STATE_TRIG_3: begin
+		/* if(32'd205881 < (xismall_q[2]+xismall_q[3])) begin
+			phasetocalc_d =  trunc_32_to_18(phasetocalc_temp_q+xismall_q[4]);
+			flag = 1'b0;
+		 end
+		 else  begin
+		   flag = 1'b1;
+			phasetocalc_d =  trunc_32_to_18((phasetocalc_temp_q+xismall_q[4])-32'd205881); 
+		 end*/
 		 
-		 phasetocalc_d = trunc_32_to_18(phasetocalc_temp_q) +trunc_32_to_18(xismall_q[4]); 
+		 phasetocalc_d = trunc_32_to_18(phasetocalc_temp_q + xismall_q[4]); 
 		 state_d = UPDATE_STATE_TRIG_3_temp;
 		 start_d = 1'b1;
 		
 		end
 		UPDATE_STATE_TRIG_3_temp: begin
 			if(donecos == 1'b1)begin
-				  position_c_d[0] =  {14'b0, cossin[31:16],2'b0};
-				  position_c_d[1] =  {14'b0, cossin[15:0],2'b0};
+			  
+				if(cossin[31] == 1'b1)begin 
+					 position_c_d[0] =  position_b_q[0]+{{14{1'b1}}, cossin[31:16],2'b0};
+					 tempnumber0 =  {{14{1'b1}}, cossin[31:16],2'b0};
+			  
+				end
+				else if(cossin[31] == 1'b0)begin
+				    tempnumber0 =  {14'b0, cossin[31:16],2'b0};
+				    position_c_d[0] =  position_b_q[0]+{14'b0, cossin[31:16],2'b0};
+				end
+				
+				 if(cossin[15] == 1'b1)begin
+				 tempnumber1 =  {{14{1'b1}}, cossin[15:0],2'b0};
+				position_c_d[1] =  position_b_q[1]+ {{14{1'b1}},cossin[15:0] ,2'b0};
+				end
+				else if(cossin[15] == 1'b1)begin
+				tempnumber1 =  {14'b0, cossin[15:0],2'b0};
+				position_c_d[1] =  position_b_q[1]+ {14'b0,cossin[15:0] ,2'b0};
+				end
+				 
+				  
 					start_d = 1'b0;
-					state_d = CHECKNEG;
+					if(cyclecount_q > 32'd999)begin
+						state_d = CHECKNEG;
+					end
+					else begin
+					state_d = CALC_PREP;
+					end
 			end
 		end
 		
@@ -761,6 +889,8 @@ endfunction
 	 
 	 phasetocalc_q <= phasetocalc_d;
 	 phasetocalc_temp_q <= phasetocalc_temp_d;
+	 joint_q <= joint_d;
+	 cyclecount_q <= cyclecount_d;
 	 
 	 for (i=0; i<=1; i=i+1)
 	 begin
@@ -796,7 +926,7 @@ endfunction
 		end
 
 	 vel_q <= vel_d;
-	 
+	 phasetocalc_real<= {4'b0 ,phasetocalc_d};
   end
  
 endmodule

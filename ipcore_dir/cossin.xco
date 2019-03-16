@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 14.7
-# Date: Fri Mar 08 01:12:59 2019
+# Date: Sat Mar 16 18:16:26 2019
 #
 ##############################################################
 #
@@ -51,7 +51,7 @@ CSET component_name=cossin
 CSET data_format=SignedFraction
 CSET flow_control=NonBlocking
 CSET functional_selection=Sin_and_Cos
-CSET input_width=18
+CSET input_width=19
 CSET iterations=0
 CSET optimize_goal=Performance
 CSET out_tlast_behv=Null
@@ -69,4 +69,4 @@ CSET round_mode=Truncate
 MISC pkg_timestamp=2013-07-22T10:47:11Z
 # END Extra information
 GENERATE
-# CRC: 8998a16f
+# CRC: 4e536afd
