@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 14.7
-# Date: Wed Jan 09 23:39:59 2019
+# Date: Sun Mar 17 01:12:58 2019
 #
 ##############################################################
 #
@@ -44,16 +44,16 @@ CSET clockenable=false
 CSET component_name=mult
 CSET constvalue=129
 CSET internaluser=0
-CSET multiplier_construction=Use_LUTs
+CSET multiplier_construction=Use_Mults
 CSET multtype=Parallel_Multiplier
 CSET optgoal=Speed
-CSET outputwidthhigh=63
+CSET outputwidthhigh=31
 CSET outputwidthlow=0
-CSET pipestages=5
+CSET pipestages=1
 CSET portatype=Signed
-CSET portawidth=32
+CSET portawidth=16
 CSET portbtype=Signed
-CSET portbwidth=32
+CSET portbwidth=16
 CSET roundpoint=0
 CSET sclrcepriority=SCLR_Overrides_CE
 CSET syncclear=false
@@ -65,4 +65,4 @@ CSET zerodetect=false
 MISC pkg_timestamp=2013-07-22T11:36:26Z
 # END Extra information
 GENERATE
-# CRC: e90c0c87
+# CRC: eacf7243

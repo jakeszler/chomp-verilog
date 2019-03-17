@@ -34,7 +34,16 @@ module message_printer (
 	 UPDATE_STATE_TRIG_2_temp =17,
 	 UPDATE_STATE_TRIG_3 = 18,
 	 UPDATE_STATE_TRIG_3_temp= 19,
-	 CALC_PREP= 20;
+	 CALC_PREP= 20,
+	 OBS_PREP = 21,
+	 OBS_PREP2 = 22,
+	 OBS_PREP3 = 23,
+	 TEMP_WAIT1 = 24,
+	 TEMP_WAIT2 = 25,
+	 OBS_STATE_CONT =26,
+	 OBS_STATE_CONT2= 27,
+	 PRJDELTA = 28,
+	 OBS_STATE_CONT3 = 29;
     
   //localparam MESSAGE_LEN = 10;
  
@@ -92,6 +101,10 @@ module message_printer (
 	 reg signed[31:0] xx_q[0:1];
   reg signed[31:0] nabla_smooth_d[0:4];
   reg signed[31:0] nabla_smooth_q[0:4];
+  
+  reg signed[31:0] nabla_obs_small_q[0:4];
+  reg signed[31:0] nabla_obs_small_d[0:4];
+  
   reg signed[31:0] qe[0:4];
   
   reg signed[31:0] qd_d[0:4];
@@ -140,6 +153,13 @@ module message_printer (
 	reg [3:0] joint_d = 4'b1;
 	reg [3:0] joint_q = 4'b1;
 	
+	reg signed [31:0] scalevalue_d;
+	reg signed [31:0] scalevalue_q;	
+	
+	reg signed [31:0] prjdelta_d;
+	reg signed [31:0] prjdelta_q;
+	
+	
 	cossin trig (
   .aclk(clk), // input aclk
   .s_axis_phase_tvalid(start_q), // input s_axis_phase_tvalid
@@ -149,10 +169,23 @@ module message_printer (
 		);
 	
 	
-	
-	
-	reg signed [15:0] norm_to_calc_d = 23'b0;
-	reg signed [15:0] norm_to_calc_q = 23'b0;
+		wire signed [31 : 0] mult_result;
+      reg signed [15 : 0] tosquare1_d;
+      reg signed [15 : 0] tosquare1_q;
+      reg signed [15 : 0] tosquare2_d;
+      reg signed [15 : 0] tosquare2_q;
+		
+		
+		
+			mult multiplier (
+  .clk(clk), // input clk
+  .a(tosquare1_q), // input [15 : 0] a
+  .b(tosquare2_q), // input [15 : 0] b
+  .p(mult_result) // output [31 : 0] p
+);
+
+	reg signed [15 : 0] norm_to_calc_d = 32'b0;
+	reg signed [15 : 0] norm_to_calc_q = 32'b0;
 	reg start_norm_d =1'b0;
 	reg start_norm_q =1'b0;
 	wire done_norm;
@@ -161,13 +194,20 @@ module message_printer (
 	reg signed [31:0] tempnumber0 = 32'b0;
 		reg signed [31:0] tempnumber1 = 32'b0;
 		
+		reg signed [31:0] squared1_d = 32'b0;
+		reg signed [31:0] squared1_q = 32'b0;
+		reg signed [31:0] squared2_d = 32'b0;
+		reg signed [31:0] squared2_q = 32'b0;
+		
 		sqrt norm (
-  .aclk(aclk), // input aclk
+  .aclk(clk), // input aclk
   .s_axis_cartesian_tvalid(start_norm_q), // input s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata(phasetocalc_real), // input [15 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tdata(norm_to_calc_q), // input [15 : 0] s_axis_cartesian_tdata
   .m_axis_dout_tvalid(done_norm), // output m_axis_dout_tvalid
   .m_axis_dout_tdata(norm_result) // output [15 : 0] m_axis_dout_tdata
 );
+
+
 /*		cossin your_instance_name (
   .aclk(aclk), // input aclk
   .s_axis_phase_tvalid(s_axis_phase_tvalid), // input s_axis_phase_tvalid
@@ -191,6 +231,9 @@ function [18:0] trunc_32_to_18(input [31:0] val32);
   trunc_32_to_18 = val32[18:0];
 endfunction
 
+function [15:0] trunc_32_to_16(input [31:0] val32);
+  trunc_32_to_16 = val32[23:8];
+endfunction
 		
   assign ledout = count_q;
   //assign ledout = result;
@@ -320,6 +363,15 @@ endfunction
 		 
 		 cyclecount_d =32'b0;
 		 cyclecount_q =32'b0;
+		 
+		 squared1_d = 32'b0;
+		 squared1_q = 32'b0;
+		 squared2_d = 32'b0;
+		 squared2_q = 32'b0;
+		 for (k=0;k<=4;k=k+1) begin
+			nabla_obs_small_d[k] = 32'b0;
+		  end
+		 
 /*		for (ii=0; ii<100; ii=ii+1)
         begin
 		     
@@ -361,8 +413,8 @@ endfunction
 				 nablaobs[k] = (xi[k-5]*-32'd47)+ xi[k]*32'd95 + xi[k+5]*-32'd47; end
 		  end
 		  
-		  obs[0] =  32'd3;
-		  obs[1] =  32'd4;
+		  obs[0] =  {16'd3,16'd0};
+		  obs[1] =  {16'd4,16'd0};
 		  //[-1320,  3480]  1 columb = 1 obs
         //[-1519,  4240]
 
@@ -392,7 +444,19 @@ endfunction
 	 
 	 start_d =start_q;
 	 joint_d= joint_q;
-     
+     norm_to_calc_d = norm_to_calc_q;
+	  start_norm_d = start_norm_q;
+	  
+	  squared1_d = squared1_q;
+	  squared2_d = squared2_q;
+	  
+	  tosquare1_d = tosquare1_q;
+	  tosquare2_d = tosquare2_q;
+	  
+	  scalevalue_d= scalevalue_q;
+	  
+	  
+	  
 	 for (i=0; i<=1; i=i+1)
 		begin
 		 xx_d[i] = xx_q[i];
@@ -401,11 +465,13 @@ endfunction
 		 xdn_d[i] = xdn_q[i];
 		 prj_d[i] = prj_q[i];
 		 delta_d[i] = delta_q[i];
+		 prjdelta_d[i] = prjdelta_q[i];
 		end
 	 for (i=0; i<=4; i=i+1)
 		begin
 		  xismall_d[i] = xismall_q[i];
 		  nabla_smooth_d[i] = nabla_smooth_q[i];
+		  nabla_obs_small_d[i] = nabla_obs_small_q[i];
 		end
 	 for (i=0; i<=9; i=i+1)
 		begin
@@ -624,8 +690,8 @@ endfunction
 		VEL_STATE: begin
 				
 				vel_d = xdsmall_q[0] +xdsmall_q[1];
-				xdn_d[0] = xdsmall_q[0]>>2;
-				xdn_d[1] = xdsmall_q[1]>>2;
+				xdn_d[0] = xdsmall_q[0]>>>2;
+				xdn_d[1] = xdsmall_q[1]>>>2;
 				
 				state_d = PRJ_STATE;
 		end
@@ -639,20 +705,78 @@ endfunction
 				delta_d[0] = xx_q[0]-obs[0];
 				delta_d[1] = xx_q[1]-obs[1];
 				
-				state_d = OBS_STATE;
+				state_d = OBS_PREP;
 				
 		end
+		OBS_PREP: begin
+				tosquare1_d = delta_q[0][23:8];
+				tosquare2_d	= delta_q[0][23:8];
+				
+				
+				state_d = TEMP_WAIT1;
+		end
+		TEMP_WAIT1: begin
+				state_d = OBS_PREP2;
+		end
+		OBS_PREP2: begin
+				tosquare1_d = delta_q[1][23:8];
+				tosquare2_d	= delta_q[1][23:8];
+				
+				squared1_d = mult_result;
+				
+				state_d = TEMP_WAIT2;
+		end
+		TEMP_WAIT2: begin
+				state_d = OBS_PREP3;
+		end		
+		OBS_PREP3: begin
+		squared2_d = mult_result;
+				
+				state_d = OBS_STATE;
+		end
 		OBS_STATE: begin
+			 
+		    norm_to_calc_d = trunc_32_to_16(squared1_q + (squared2_q));
 		    start_norm_d = 1'b1;
 			 
 			 
-			 
-			 
-			state_d = OBS_STATE_2;
-				// if(done_norm == 1'b1)begin
-					//	state_d = OBS_STATE_2;
-				//end
+			//state_d = OBS_STATE_2;
+				 if(done_norm == 1'b1)begin
+						if(16'd32 < norm_result)begin
+						   state_d = OBS_STATE_2;
+						end
+						else begin
+						    state_d = OBS_STATE_CONT;
+						end
+						start_norm_d = 1'b0;
+				end
 		end
+		OBS_STATE_CONT: begin
+		
+			scalevalue_d = -(16'd1-(norm_result>>>1));
+			state_d = OBS_STATE_CONT2;
+		end
+		OBS_STATE_CONT2: begin
+		
+			delta_d[0] = delta_q[0]*scalevalue_q;
+			delta_d[1] = delta_q[1]*scalevalue_q;
+			state_d = OBS_STATE_2;
+		end
+		PRJDELTA: begin
+			prjdelta_d[0]= prj_q[0]*delta_q[0]+ prj_q[1]*delta_q[0];
+			prjdelta_d[1] = prj_q[2]*delta_q[1]+prj_q[3]*delta_q[1];
+		end
+		
+		OBS_STATE_CONT3: begin
+	
+				nabla_obs_small_d[0] =  nabla_obs_small_q[0] + (vel_d *JJsmall_q[0]*prjdelta_q[0]);
+				nabla_obs_small_d[1] =  nabla_obs_small_q[1] + (vel_d *JJsmall_q[6]*prjdelta_q[0]);
+				nabla_obs_small_d[2] =  nabla_obs_small_q[2] + (vel_d *JJsmall_q[2]*prjdelta_q[0]+vel_d *JJsmall_q[7]*prjdelta_q[1]);
+				nabla_obs_small_d[3] =  nabla_obs_small_q[3] + (vel_d *JJsmall_q[3]*prjdelta_q[0]+vel_d *JJsmall_q[8]*prjdelta_q[1]);
+				nabla_obs_small_d[4] =  nabla_obs_small_q[4];
+			state_d = OBS_STATE_2;
+		end
+		
 		OBS_STATE_2: begin
 				joint_d = joint_q +1'b1;
 				
@@ -668,14 +792,14 @@ endfunction
 		
 		    for (i=0; i<=4; i=i+1)
 				begin
-			xismall_d[i] = xismall_q[i]-(nabla_smooth_q[i]>>>7); // div 128 
+			xismall_d[i] = xismall_q[i]-((nabla_obs_small_q[i]+nabla_smooth_q[i])>>>7); // div 128 
 		   end
 		   state_d = UPDATE_STATE;
 		end
 		
 		UPDATE_STATE: begin
 		   for (i=0; i<=1; i=i+1)
-			begin
+			begin 
 		   position_a_old_d[i] = position_a_q[i];
 			position_b_old_d[i] = position_b_q[i];
 			position_c_old_d[i] = position_c_q[i];
@@ -788,25 +912,24 @@ endfunction
 				if(cossin[31] == 1'b1)begin 
 					 position_c_d[0] =  position_b_q[0]+{{14{1'b1}}, cossin[31:16],2'b0};
 					 tempnumber0 =  {{14{1'b1}}, cossin[31:16],2'b0};
-			  
 				end
 				else if(cossin[31] == 1'b0)begin
 				    tempnumber0 =  {14'b0, cossin[31:16],2'b0};
 				    position_c_d[0] =  position_b_q[0]+{14'b0, cossin[31:16],2'b0};
 				end
 				
-				 if(cossin[15] == 1'b1)begin
+				if(cossin[15] == 1'b1)begin
 				 tempnumber1 =  {{14{1'b1}}, cossin[15:0],2'b0};
 				position_c_d[1] =  position_b_q[1]+ {{14{1'b1}},cossin[15:0] ,2'b0};
 				end
-				else if(cossin[15] == 1'b1)begin
+				else if(cossin[15] == 1'b0)begin
 				tempnumber1 =  {14'b0, cossin[15:0],2'b0};
 				position_c_d[1] =  position_b_q[1]+ {14'b0,cossin[15:0] ,2'b0};
 				end
 				 
 				  
 					start_d = 1'b0;
-					if(cyclecount_q > 32'd999)begin
+					if(cyclecount_q > 32'd2000)begin
 						state_d = CHECKNEG;
 					end
 					else begin
@@ -836,7 +959,7 @@ endfunction
 				valueToPrint_d = 32'd2147483646;
 			end
 			else begin
-				valueToPrint_d = cossin[31:0];//{8'b0,phasetocacl};//cossin[31:0];//multresult_d;//nablaobs[amounttoprint_q];
+				valueToPrint_d = position_c_d[1];//{8'b0,phasetocacl};//cossin[31:0];//multresult_d;//nablaobs[amounttoprint_q];
 			end
 			addr_d = 4'd4;
 			amounttoprint_d = amounttoprint_q-1;
@@ -891,6 +1014,18 @@ endfunction
 	 phasetocalc_temp_q <= phasetocalc_temp_d;
 	 joint_q <= joint_d;
 	 cyclecount_q <= cyclecount_d;
+	 	 squared1_q <= squared1_d;
+		 	 squared2_q <= squared2_d;
+	 norm_to_calc_q <= norm_to_calc_d;
+	 
+	 tosquare2_q <= tosquare2_d;
+	 tosquare1_q <= tosquare1_d;
+	 scalevalue_q <= scalevalue_d;
+	 
+	 
+	 
+	 
+	 
 	 
 	 for (i=0; i<=1; i=i+1)
 	 begin
@@ -905,6 +1040,8 @@ endfunction
 	 xdsmall_q[i] <= xdsmall_d[i];
 	 xdn_q[i] <= xdn_d[i];
 	 delta_q[i] <= delta_d[i];
+	 prjdelta_q[i] <= prjdelta_d[i];
+
 	 end
 	 
 	 for(i=0; i<=9; i=i+1)
@@ -918,6 +1055,7 @@ endfunction
 		  nabla_smooth_q[i] <= nabla_smooth_d[i];
 		  xismall_q[i] <= xismall_d[i];
 		  qd_q[i] <= qd_d[i];
+		  nabla_obs_small_q[i] <= nabla_obs_small_d[i];
 		end
 	 
 	 for (i=0; i<=3; i=i+1)
